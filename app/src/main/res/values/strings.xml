@@ -3,4 +3,5 @@
     <string name="button_advertise_ca">Advertise</string>
     <string name="advertise_ca_stop">Stop</string>
     <string name="text_advertising_active">Advertising Active</string>
+    <string name="button_accept_connection">Accept Connection</string>
 </resources>
