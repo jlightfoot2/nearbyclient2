@@ -7,7 +7,7 @@
     tools:context=".AdvertiseCAActivity">
 
     <EditText
-        android:id="@+id/editText"
+        android:id="@+id/editTextConnectionHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -19,7 +19,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/editTextAcceptConnection"
+        android:id="@+id/editTextConnectionStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -27,7 +27,7 @@
         android:ems="10"
         android:inputType="textPersonName"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editText" />
+        app:layout_constraintTop_toBottomOf="@+id/editTextConnectionHeader" />
 
     <Button
         android:id="@+id/button2"
@@ -38,7 +38,7 @@
         android:onClick="stopAdvertising"
         android:text="@string/advertise_ca_stop"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editTextAcceptConnection" />
+        app:layout_constraintTop_toBottomOf="@+id/editTextConnectionStatus" />
 
     <Button
         android:id="@+id/buttonAcceptConnection"
@@ -46,7 +46,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
+        android:onClick="acceptConnection"
         android:text="@string/button_accept_connection"
         app:layout_constraintStart_toEndOf="@+id/button2"
-        app:layout_constraintTop_toBottomOf="@+id/editTextAcceptConnection" />
+        app:layout_constraintTop_toBottomOf="@+id/editTextConnectionStatus" />
 </android.support.constraint.ConstraintLayout>

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
@@ -96,6 +97,10 @@ public class AdvertiseCAActivity extends Activity {
                     mEndPointId = endpointId;
 //                    opponentName = connectionInfo.getEndpointName();
                     mAuthenticationToken = connectionInfo.getAuthenticationToken();
+                    EditText textConnectionHeader = (EditText) findViewById(R.id.editTextConnectionHeader);
+                    textConnectionHeader.setText("Connect request from: " + mEndPointId);
+                    EditText textConnectionStatus = (EditText) findViewById(R.id.editTextConnectionStatus);
+                    textConnectionStatus.setText("Token: " + mAuthenticationToken);
                 }
 
                 @Override
@@ -106,6 +111,10 @@ public class AdvertiseCAActivity extends Activity {
                             connectionsClient.stopDiscovery();
                             connectionsClient.stopAdvertising();
                             Log.v(TAG,"We're connected! Can now start sending and receiving data");
+                            EditText textConnectionHeader = (EditText) findViewById(R.id.editTextConnectionHeader);
+                            textConnectionHeader.setText("Success");
+                            EditText textConnectionStatus = (EditText) findViewById(R.id.editTextConnectionStatus);
+                            textConnectionStatus.setText("You are now connected");
                             break;
                         case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
                             // The connection was rejected by one or both sides.
