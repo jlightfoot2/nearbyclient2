@@ -4,4 +4,5 @@
     <string name="advertise_ca_stop">Stop</string>
     <string name="text_advertising_active">Advertising Active</string>
     <string name="button_accept_connection">Accept Connection</string>
+    <string name="button_start_pki_activity">Handle Certs</string>
 </resources>

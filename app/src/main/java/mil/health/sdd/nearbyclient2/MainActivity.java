@@ -21,4 +21,9 @@ public class MainActivity extends Activity {
         intent.putExtra(EXTRA_ADVERTISE_MESSAGE, EXTRA_ADVERTISE_MESSAGE_STRING);
         startActivity(intent);
     }
+
+    public void setupCertificates(View view) {
+        Intent intent = new Intent(this, PKIActivity.class);
+        startActivity(intent);
+    }
 }
