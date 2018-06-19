@@ -150,8 +150,7 @@ class SSlUtil {
 
 //Generate CSR in PKCS#10 format encoded in DER
         PKCS10CertificationRequest csr = CSRHelper.generateCSR(keyPair, COMMON_NAME);
-//        byte  CSRder[] = csr.getEncoded();
-        //TODO SIGN with furnished CA
+
         return csr;
     }
 }
