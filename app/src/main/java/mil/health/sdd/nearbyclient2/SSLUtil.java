@@ -12,12 +12,8 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
-import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -38,7 +34,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import javax.security.auth.x500.X500Principal;
 
 class SSlUtil {
     private static final String TAG = "SslUtil";
@@ -133,14 +128,6 @@ class SSlUtil {
         return keyPair;
     }
 
-    public PKCS10CertificationRequest createCSR333(KeyPair pair) throws OperatorCreationException {
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=Requested Test Certificate"), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        return csr;
-    }
 
     public PKCS10CertificationRequest createCSR() throws NoSuchAlgorithmException, IOException, OperatorCreationException {
 //Generate KeyPair
@@ -149,6 +136,13 @@ class SSlUtil {
         KeyPair keyPair = keyGen.generateKeyPair();
 
 //Generate CSR in PKCS#10 format encoded in DER
+        PKCS10CertificationRequest csr = CSRHelper.generateCSR(keyPair, COMMON_NAME);
+
+        return csr;
+    }
+
+    public PKCS10CertificationRequest createCSR(KeyPair keyPair) throws NoSuchAlgorithmException, IOException, OperatorCreationException {
+
         PKCS10CertificationRequest csr = CSRHelper.generateCSR(keyPair, COMMON_NAME);
 
         return csr;

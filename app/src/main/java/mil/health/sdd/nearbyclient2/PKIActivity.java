@@ -44,6 +44,7 @@ public class PKIActivity extends Activity {
 
     private static final String CA_KEY_ALIAS = "andoidIotCA";
     private static final String CA_CN ="android-dha-ca.local";
+    private static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
     // private static final String CERT_DIR = "certs";
     // private static final String PRIVATE_KEY_FILE_NAME = "mqtt_client.key";
     // private static final String CA_FILE_NAME = "ca.key";
@@ -52,136 +53,48 @@ public class PKIActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pki);
         Log.v(TAG, "onCreate");
-        try {
-            Provider bcProvider = new BouncyCastleProvider();
-            Security.addProvider(bcProvider);
-            KeyPair rootKeyPair = createRootKeyPairBC();
-            PKCS10CertificationRequest testCSR = createTestCSR();
-            signBC(testCSR,rootKeyPair);
-        } catch (NoSuchProviderException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (CertificateException e) {
-            e.printStackTrace();
-        } catch (OperatorCreationException e) {
-            e.printStackTrace();
+
+
+        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+        if(!caPreferences.isSetup()){
+            Log.v(TAG,"Setting up ca");
+            try {
+                Provider bcProvider = new BouncyCastleProvider();
+                Security.addProvider(bcProvider);
+                KeyPair rootKeyPair = createRootKeyPairBC();
+                Log.v(TAG,"Private key info");
+                Log.v(TAG,rootKeyPair.getPrivate().getAlgorithm());
+                Log.v(TAG,rootKeyPair.getPrivate().getFormat());
+                Log.v(TAG,"Public key info");
+                Log.v(TAG,rootKeyPair.getPublic().getAlgorithm());
+                Log.v(TAG,rootKeyPair.getPublic().getFormat());
+
+                PKCS10CertificationRequest testCSR = createTestCSR(rootKeyPair);
+                X509Certificate caCert = signBC(testCSR,rootKeyPair); //we are self-signing
+
+                caPreferences.store(rootKeyPair,caCert);
+
+            } catch (NoSuchProviderException e) {
+                e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (CertificateException e) {
+                e.printStackTrace();
+            } catch (OperatorCreationException e) {
+                e.printStackTrace();
+            }
+        }else{
+            Log.v(TAG,"CA already setup");
         }
     }
 
 
-//    private KeyPair createRootKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-//        KeyPairGenerator kpg = KeyPairGenerator.getInstance(
-//                KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-//
-//        kpg.initialize(new KeyGenParameterSpec.Builder(
-//                KEY_ALIAS,
-//                KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
-//                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-//                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-////                .setCertificateSubject(new X500Principal("CN=Test Root CA Test Certificate"))
-//                .build());
-//
-//        return kpg.generateKeyPair();
-//    }
-
-//    private void getSignedCert(PKCS10CertificationRequest inputCSR, KeyPair caKeyPair) throws IOException {
-//
-//        //public static X509Certificate sign
-//
-//        AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder().find("SHA1withRSA");
-//
-//        AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
-//
-//        AsymmetricKeyParameter foo = PrivateKeyFactory.createKey(caKeyPair.getPrivate().getEncoded()); //Todo Rename
-//
-//        SubjectPublicKeyInfo keyInfo = SubjectPublicKeyInfo.getInstance(caKeyPair.getPublic().getEncoded());
-//    }
-
-//    public static X509Certificate sign(PKCS10CertificationRequest inputCSR, KeyPair pair)
-//            throws InvalidKeyException, NoSuchAlgorithmException,
-//            NoSuchProviderException, SignatureException, IOException,
-//            OperatorCreationException, CertificateException, KeyStoreException, UnrecoverableKeyException {
-//
-//
-//
-//
-//        KeyStore keyStore = KeyStore.getInstance(BouncyCastleProvider.PROVIDER_NAME);
-//        keyStore.load(null);
-//        char[] pw = { };
-//        PrivateKey caKey = (PrivateKey) keyStore.getKey(KEY_ALIAS,pw);
-//
-//        //Docs: The key must have been associated with the alias by a call to setKeyEntry, or by a call to setEntry with a PrivateKeyEntry or SecretKeyEntry.
-//
-//        AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder()
-//                .find("SHA1withRSA");
-//        AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder()
-//                .find(sigAlgId);
-//    //TODO test if private key is empty
-//        //TODO try debugger
-//        AsymmetricKeyParameter caPrivateKey = PrivateKeyFactory.createKey(caKey.getEncoded());
-//
-//        SubjectPublicKeyInfo keyInfo = SubjectPublicKeyInfo.getInstance(pair.getPublic().getEncoded());
-//
-//
-//        Calendar cal = Calendar.getInstance();
-//        Date today = cal.getTime();
-//        cal.add(Calendar.YEAR, 3); // expires in 3 years
-//        Date expiryYear = cal.getTime();
-//
-//        X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(
-//                new X500Name("CN=issuer"),
-//                new BigInteger("1"),
-//                new Date(),
-//                expiryYear,
-//                inputCSR.getSubject(), //pk10Holder.getSubject(),
-//                keyInfo);
-//
-//        ContentSigner sigGen = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
-//                .build(caPrivateKey);
-//
-//        X509CertificateHolder holder = myCertificateGenerator.build(sigGen);
-//
-//        Certificate eeX509CertificateStructure = holder.toASN1Structure();
-//
-//        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
-//
-//        // Read Certificate
-//        InputStream is1 = new ByteArrayInputStream(eeX509CertificateStructure.getEncoded());
-//        X509Certificate theCert =  (X509Certificate) cf.generateCertificate(is1);
-//        is1.close();
-//        return theCert;
-//    }
-
-    private PKCS10CertificationRequest createTestCSR() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, OperatorCreationException {
-        SSlUtil sslUtil = new SSlUtil();
-        return sslUtil.createCSR();
-    }
-
-    private KeyPair createSelfSignedCAKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException, IOException, OperatorCreationException, CertificateException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC");
-        keyPairGenerator.initialize(1024, new SecureRandom());
-
-        java.security.KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-        PKCS10CertificationRequest csr = CSRHelper.generateCSR(keyPair,CA_CN);
-
-        X509Certificate caCert = signBC(csr,keyPair);
-
-        return keyPair;
-    }
-
-    private KeyPair getRootKeyPairBC() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC");
-        keyPairGenerator.initialize(1024, new SecureRandom());
-
-        java.security.KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        return keyPair;
+    private PKCS10CertificationRequest createTestCSR(KeyPair keyPair) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, OperatorCreationException {
+        return CSRHelper.generateCSR(keyPair,CA_CN);
     }
 
     private KeyPair createRootKeyPairBC() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
@@ -197,7 +110,7 @@ public class PKIActivity extends Activity {
             throws NoSuchProviderException, IOException,
             OperatorCreationException, CertificateException, CertificateException {
 
-
+        String cnString = String.format(CA_CN_PATTERN, CA_CN);
         AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder()
                 .find("SHA1withRSA");
         AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder()
@@ -215,7 +128,7 @@ public class PKIActivity extends Activity {
         Date expiryYear = cal.getTime();
 
         X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(
-                new X500Name("CN=issuer"),
+                new X500Name(cnString),
                 new BigInteger("1"),
                 new Date(),
                 expiryYear,
