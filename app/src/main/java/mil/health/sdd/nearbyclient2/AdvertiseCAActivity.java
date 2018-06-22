@@ -1,12 +1,14 @@
 package mil.health.sdd.nearbyclient2;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
@@ -22,6 +24,10 @@ import com.google.android.gms.nearby.connection.Strategy;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+
+import java.io.IOException;
+
 public class AdvertiseCAActivity extends Activity {
     public static final String SERVICE_ID = "mil.health.sdd.nearbyclient2.CA_SYSTEM";
     private static final Strategy STRATEGY = Strategy.P2P_STAR;
@@ -29,6 +35,7 @@ public class AdvertiseCAActivity extends Activity {
     public String mAuthenticationToken = null;
     private ConnectionsClient connectionsClient;
     public String mEndPointId = null;
+    private byte[] csrRequestBytes = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +69,19 @@ public class AdvertiseCAActivity extends Activity {
             connectionsClient.acceptConnection(mEndPointId, payloadCallback);
         }
     }
+
+    private void notifyUser(String msg){
+//        Snackbar.make(findViewById(R.id.pkiCoordinatorLayout), msg,
+//                Snackbar.LENGTH_SHORT).show(); //Relies on AppCompat so doesn't work
+
+        Context context = getApplicationContext();
+        CharSequence text = msg;
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
+    }
+
 
     private void startAdvertising() {
         // startAdvertising https://developers.google.com/android/reference/com/google/android/gms/nearby/connection/ConnectionsClient#startAdvertising(java.lang.String,%20java.lang.String,%20com.google.android.gms.nearby.connection.ConnectionLifecycleCallback,%20com.google.android.gms.nearby.connection.AdvertisingOptions)
@@ -141,6 +161,18 @@ public class AdvertiseCAActivity extends Activity {
                 public void onPayloadReceived(String endpointId, Payload payload) {
 //                    opponentChoice = GameChoice.valueOf(new String(payload.asBytes(), UTF_8));
                     Log.v(TAG, "onPayloadReceived called");
+                    if(payload.getType() == Payload.Type.BYTES){
+                        csrRequestBytes = payload.asBytes();
+                        notifyUser("CSR received "+ csrRequestBytes.length);
+                        try {
+                            PKCS10CertificationRequest csrRequest = new PKCS10CertificationRequest(csrRequestBytes);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            notifyUser("Could not create PKCS10CertificationRequest");
+                            Log.e(TAG,"Could not create PKCS10CertificationRequest",e);
+                        }
+                    }
+
                 }
 
                 @Override
