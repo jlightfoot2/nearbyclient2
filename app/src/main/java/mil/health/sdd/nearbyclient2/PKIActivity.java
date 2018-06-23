@@ -1,8 +1,10 @@
 package mil.health.sdd.nearbyclient2;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
@@ -54,10 +56,10 @@ public class PKIActivity extends Activity {
         setContentView(R.layout.activity_pki);
         Log.v(TAG, "onCreate");
 
-
         CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
         if(!caPreferences.isSetup()){
             Log.v(TAG,"Setting up ca");
+            notifyUser("Setting up CA");
             try {
                 Provider bcProvider = new BouncyCastleProvider();
                 Security.addProvider(bcProvider);
@@ -73,7 +75,7 @@ public class PKIActivity extends Activity {
                 X509Certificate caCert = signBC(testCSR,rootKeyPair); //we are self-signing
 
                 caPreferences.store(rootKeyPair,caCert);
-
+                notifyUser("CA Done");
             } catch (NoSuchProviderException e) {
                 e.printStackTrace();
             } catch (NoSuchAlgorithmException e) {
@@ -89,9 +91,19 @@ public class PKIActivity extends Activity {
             }
         }else{
             Log.v(TAG,"CA already setup");
+            notifyUser("CA already setup");
         }
     }
 
+    private void notifyUser(String msg){
+
+        Context context = getApplicationContext();
+        CharSequence text = msg;
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
+    }
 
     private PKCS10CertificationRequest createTestCSR(KeyPair keyPair) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, OperatorCreationException {
         return CSRHelper.generateCSR(keyPair,CA_CN);

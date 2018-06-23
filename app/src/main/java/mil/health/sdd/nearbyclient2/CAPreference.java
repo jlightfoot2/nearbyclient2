@@ -66,6 +66,15 @@ public class CAPreference {
         this.retrieveRawCerts();
     }
 
+    public void deleteAll() {
+        SharedPreferences.Editor pkiEditor = sharedPreferences.edit();
+        pkiEditor.putString(context.getString(R.string.ca_public_key_name), "");
+        pkiEditor.putString(context.getString(R.string.ca_private_key_name), "");
+        pkiEditor.putString(context.getString(R.string.ca_x509_cert_name), "");
+        pkiEditor.commit();
+        this.retrieveRawCerts();
+    }
+
     private void decodeCerts(){
         caPrivateKeyBytes  = Base64.decode(caPrivateKeyPref, BASE64_CONF);
         caPublicKeyBytes  = Base64.decode(caPublicKeyPref, BASE64_CONF);
