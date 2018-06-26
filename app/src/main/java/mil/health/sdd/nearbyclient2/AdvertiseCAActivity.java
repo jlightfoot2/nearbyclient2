@@ -24,9 +24,15 @@ import com.google.android.gms.nearby.connection.Strategy;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 
 public class AdvertiseCAActivity extends Activity {
     public static final String SERVICE_ID = "mil.health.sdd.nearbyclient2.CA_SYSTEM";
@@ -36,9 +42,11 @@ public class AdvertiseCAActivity extends Activity {
     private ConnectionsClient connectionsClient;
     public String mEndPointId = null;
     private byte[] csrRequestBytes = null;
+    private Activity mActivity;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mActivity = this;
         setContentView(R.layout.activity_advertise_ca);
         connectionsClient = Nearby.getConnectionsClient(this);
         startAdvertising();
@@ -47,6 +55,7 @@ public class AdvertiseCAActivity extends Activity {
 
     @Override
     protected void onStop() {
+        Log.v(TAG,"onStop called in Activity");
         stopAdvertisingActivity();
         super.onStop();
     }
@@ -64,9 +73,11 @@ public class AdvertiseCAActivity extends Activity {
     }
 
     public void acceptConnection(View view){
-        Log.v(TAG, "user::acceptConnection");
+        Log.v(TAG, "user::acceptConnection button pressed");
         if(!mEndPointId.isEmpty()){
+            Log.v(TAG, "user::acceptConnection called");
             connectionsClient.acceptConnection(mEndPointId, payloadCallback);
+            connectionsClient.stopAdvertising();
         }
     }
 
@@ -166,10 +177,34 @@ public class AdvertiseCAActivity extends Activity {
                         notifyUser("CSR received "+ csrRequestBytes.length);
                         try {
                             PKCS10CertificationRequest csrRequest = new PKCS10CertificationRequest(csrRequestBytes);
+                            Log.v(TAG,"successs: csr bytes converted to PKCS10CertificationRequest");
+                            CAPreference caPrefs = new CAPreference(mActivity,getString(R.string.preference_pki_filename));
+                            if(caPrefs.isSetup()){
+                                String issuerCNString = String.format(PKIActivity.CA_CN_PATTERN, PKIActivity.CA_CN);
+                                X509Certificate signedClientCert = CSRHelper.sign(csrRequest,caPrefs.getKeyPair(),issuerCNString);
+                                Payload signedClientCertPayload = Payload.fromBytes(signedClientCert.getEncoded());
+                                Nearby.getConnectionsClient(mActivity).sendPayload(
+                                    mEndPointId, signedClientCertPayload);
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                             notifyUser("Could not create PKCS10CertificationRequest");
                             Log.e(TAG,"Could not create PKCS10CertificationRequest",e);
+                        } catch (CertificateException e) {
+                            Log.e(TAG,"CertificateException",e);
+                            e.printStackTrace();
+                        } catch (NoSuchAlgorithmException e) {
+                            Log.e(TAG,"NoSuchAlgorithmException",e);
+                            e.printStackTrace();
+                        } catch (InvalidKeySpecException e) {
+                            Log.e(TAG,"InvalidKeySpecException",e);
+                            e.printStackTrace();
+                        } catch (OperatorCreationException e) {
+                            Log.e(TAG,"OperatorCreationException",e);
+                            e.printStackTrace();
+                        } catch (NoSuchProviderException e) {
+                            Log.e(TAG,"OperatorCreationException",e);
+                            e.printStackTrace();
                         }
                     }
 

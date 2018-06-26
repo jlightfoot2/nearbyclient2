@@ -45,8 +45,8 @@ public class PKIActivity extends Activity {
     private static final String TAG = "PKIActivity";
 
     private static final String CA_KEY_ALIAS = "andoidIotCA";
-    private static final String CA_CN ="android-dha-ca.local";
-    private static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
+    public static final String CA_CN ="android-dha-ca.local";
+    public static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
     // private static final String CERT_DIR = "certs";
     // private static final String PRIVATE_KEY_FILE_NAME = "mqtt_client.key";
     // private static final String CA_FILE_NAME = "ca.key";
