@@ -1,9 +1,13 @@
 package mil.health.sdd.nearbyclient2;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.widget.Toast;
 
@@ -16,6 +20,25 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+        } else {
+
+        }
+    }
+    @Override
+    public void onStart(){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    1);
+        } else {
+            notifyUser("PERMISSION GRANTED FOR WRITE_EXTERNAL_STORAGE" );
+        }
+       super.onStart();
     }
 
     /** Called when the user taps the Advertise button */
@@ -27,6 +50,11 @@ public class MainActivity extends Activity {
 
     public void setupCertificates(View view) {
         Intent intent = new Intent(this, PKIActivity.class);
+        startActivity(intent);
+    }
+
+    public void handleStoredCSRs(View view) {
+        Intent intent = new Intent(this, PKIFilesActivity.class);
         startActivity(intent);
     }
 
