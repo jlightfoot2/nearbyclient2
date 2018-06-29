@@ -6,11 +6,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.ArrayAdapter;
-import android.widget.Spinner;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -27,7 +26,7 @@ public class PKIFilesActivity extends Activity {
         setContentView(R.layout.activity_pkifiles);
         this.checkExternalStorage();
         if(hasDir){
-            this.listDirFiles();
+            this.listDirFiles2();
         }
     }
 
@@ -40,36 +39,57 @@ public class PKIFilesActivity extends Activity {
             if(pkiDir.exists()){
                 hasDir = true;
                 notifyUser(PKI_DIR_NAME + ": " + pkiDir.getAbsolutePath());
-                Log.v(TAG,PKI_DIR_NAME + ": " + pkiDir.getAbsolutePath());
-                Calendar calendar = Calendar.getInstance();
-                //Returns current time in millis
-                long timeSeconds = calendar.getTimeInMillis() / 1000;
-                File testfile = new File(pkiDir, timeSeconds + "myData.txt");
-                try {
-                    FileOutputStream f = new FileOutputStream(testfile);
-                    PrintWriter pw = new PrintWriter(f);
-                    pw.println("Hi , How are you");
-                    pw.println("Hello World");
-                    pw.flush();
-                    pw.close();
-                    f.close();
-                    Log.v(TAG,"File was written");
-                } catch (FileNotFoundException e) {
-                    Log.e(TAG,"Could not open file for writing #1",e);
-                } catch (IOException e) {
-                    Log.e(TAG,"Could not open file for writing #2",e);
-                }
             } else {
                 notifyUser(PKI_DIR_NAME + " does not exist");
             }
         }
     }
 
-    private void listDirFiles(){
+    private void testFileCreation() throws IOException {
+        notifyUser(PKI_DIR_NAME + ": " + pkiDir.getAbsolutePath());
+        Log.v(TAG,PKI_DIR_NAME + ": " + pkiDir.getAbsolutePath());
+        Calendar calendar = Calendar.getInstance();
+        //Returns current time in millis
+        long timeSeconds = calendar.getTimeInMillis() / 1000;
+        File testfile = new File(pkiDir, timeSeconds + "myData.txt");
+        FileOutputStream f = new FileOutputStream(testfile);
+        PrintWriter pw = new PrintWriter(f);
+        pw.println("Hi , How are you");
+        pw.println("Hello World");
+        pw.flush();
+        pw.close();
+        f.close();
+    }
+
+//    private void listDirFiles(){
+//        File[] files = pkiDir.listFiles();
+//
+//        String[] newArr = new String[files.length];
+//
+//        notifyUser(files.length + " CSRs available");
+//
+//        for (int i=0; i< files.length; i++)
+//        {
+//            newArr[i] = files[i].getName();
+//        }
+//
+//        Log.v(TAG,"Spinner items length: " +  files.length);
+//
+//        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
+//
+//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+//                this, android.R.layout.simple_spinner_item, newArr);
+//
+//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//
+//        spinner.setAdapter(adapter);
+//
+//    }
+
+    private void listDirFiles2(){
         File[] files = pkiDir.listFiles();
 
         String[] newArr = new String[files.length];
-
 
         notifyUser(files.length + " CSRs available");
 
@@ -78,19 +98,19 @@ public class PKIFilesActivity extends Activity {
             newArr[i] = files[i].getName();
         }
 
-        Log.v(TAG,"Spinner items length: " +  files.length);
+        Log.v(TAG,"Checkbox items length: " +  files.length);
 
-
-
-        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
-
-
+//        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
+//
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-                this, android.R.layout.simple_spinner_item, newArr);
+                this, android.R.layout.simple_list_item_1, newArr);
 
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        spinner.setAdapter(adapter);
+        ListView listView = (ListView) findViewById(R.id.dynamicCSRList);
+        listView.setAdapter(adapter);
+//
+//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//
+//        spinner.setAdapter(adapter);
 
     }
 

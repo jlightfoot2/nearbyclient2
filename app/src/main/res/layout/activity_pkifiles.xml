@@ -6,8 +6,9 @@
     android:layout_height="match_parent"
     tools:context=".PKIFilesActivity">
 
-    <Spinner
-        android:id="@+id/spinnerCSRs"
+    <ListView
+        android:id="@+id/dynamicCSRList"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="match_parent" />
+
 </android.support.constraint.ConstraintLayout>
