@@ -5,7 +5,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.ArrayAdapter;
+import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 public class PKIFilesActivity extends Activity {
@@ -20,13 +21,16 @@ public class PKIFilesActivity extends Activity {
     public static final String PKI_DIR_NAME = "MILHEALTHSDDPKI";
     private boolean hasDir = false;
     private File pkiDir;
+    private FileListAdapter mFileListAdapter;
+    private ListView mListView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pkifiles);
+        mListView = (ListView) findViewById(R.id.dynamicCSRList);
         this.checkExternalStorage();
         if(hasDir){
-            this.listDirFiles2();
+            loadFiles();
         }
     }
 
@@ -61,62 +65,33 @@ public class PKIFilesActivity extends Activity {
         f.close();
     }
 
-//    private void listDirFiles(){
-//        File[] files = pkiDir.listFiles();
-//
-//        String[] newArr = new String[files.length];
-//
-//        notifyUser(files.length + " CSRs available");
-//
-//        for (int i=0; i< files.length; i++)
-//        {
-//            newArr[i] = files[i].getName();
-//        }
-//
-//        Log.v(TAG,"Spinner items length: " +  files.length);
-//
-//        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
-//
-//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-//                this, android.R.layout.simple_spinner_item, newArr);
-//
-//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//
-//        spinner.setAdapter(adapter);
-//
-//    }
-
-    private void listDirFiles2(){
+    private ArrayList<FileListItem> getFileList(){
+        ArrayList<FileListItem> filesList = new ArrayList<>();
         File[] files = pkiDir.listFiles();
-
-        String[] newArr = new String[files.length];
 
         notifyUser(files.length + " CSRs available");
 
         for (int i=0; i< files.length; i++)
         {
-            newArr[i] = files[i].getName();
+            filesList.add(new FileListItem(files[i].getName()));
         }
 
-        Log.v(TAG,"Checkbox items length: " +  files.length);
-
-//        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
-//
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-                this, android.R.layout.simple_list_item_1, newArr);
-
-        ListView listView = (ListView) findViewById(R.id.dynamicCSRList);
-        listView.setAdapter(adapter);
-//
-//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//
-//        spinner.setAdapter(adapter);
-
+        return filesList;
     }
 
+    private void loadFiles(){
+        ArrayList<FileListItem> filesList = getFileList();
+
+        Log.v(TAG,"Checkbox items length: " +  filesList.size());
+
+        mFileListAdapter = new FileListAdapter(this,filesList);
+
+        mListView.setAdapter(mFileListAdapter);
+
+
+    }
     private void notifyUser(String msg){
-//        Snackbar.make(findViewById(R.id.pkiCoordinatorLayout), msg,
-//                Snackbar.LENGTH_SHORT).show(); //Relies on AppCompat so doesn't work
+
         Log.v(TAG,msg);
         Context context = getApplicationContext();
         CharSequence text = msg;
@@ -125,6 +100,23 @@ public class PKIFilesActivity extends Activity {
         Toast toast = Toast.makeText(context, text, duration);
         toast.show();
     }
+
+    public void deleteFiles(View view){
+        ArrayList<String> filenames = mFileListAdapter.getSelectedFileNames();
+        for(int i=0; i<filenames.size(); i++) {
+            String fileName = filenames.get(i);
+            File file = new File(pkiDir,fileName);
+            if(file.exists()){
+               Log.v(TAG,fileName + " exists");
+                file.delete();
+            }
+        }
+        mFileListAdapter.clear();
+        mFileListAdapter.addAll(getFileList());
+        mFileListAdapter.notifyDataSetChanged();
+
+    }
+
 
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
@@ -155,3 +147,49 @@ public class PKIFilesActivity extends Activity {
     }
 
 }
+//    private void listDirFiles(){
+//        File[] files = pkiDir.listFiles();
+//
+//        String[] newArr = new String[files.length];
+//
+//        notifyUser(files.length + " CSRs available");
+//
+//        for (int i=0; i< files.length; i++)
+//        {
+//            newArr[i] = files[i].getName();
+//        }
+//
+//        Log.v(TAG,"Spinner items length: " +  files.length);
+//
+//        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
+//
+//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+//                this, android.R.layout.simple_spinner_item, newArr);
+//
+//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//
+//        spinner.setAdapter(adapter);
+//
+//    }
+
+//    private void listDirFiles2(){
+//        File[] files = pkiDir.listFiles();
+//
+//        String[] newArr = new String[files.length];
+//
+//        notifyUser(files.length + " CSRs available");
+//
+//        for (int i=0; i< files.length; i++)
+//        {
+//            newArr[i] = files[i].getName();
+//        }
+//
+//        Log.v(TAG,"Checkbox items length: " +  files.length);
+//
+//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+//                this, android.R.layout.simple_list_item_1, newArr);
+//
+//        ListView listView = (ListView) findViewById(R.id.dynamicCSRList);
+//        listView.setAdapter(adapter);
+//
+//    }
