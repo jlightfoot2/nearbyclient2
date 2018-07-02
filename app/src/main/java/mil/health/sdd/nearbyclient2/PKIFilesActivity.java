@@ -9,7 +9,10 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -115,6 +118,45 @@ public class PKIFilesActivity extends Activity {
         mFileListAdapter.addAll(getFileList());
         mFileListAdapter.notifyDataSetChanged();
 
+    }
+
+    public void inspectFiles(View view){
+        ArrayList<String> filenames = mFileListAdapter.getSelectedFileNames();
+        for(int i=0; i<filenames.size(); i++) {
+            String fileName = filenames.get(i);
+            File file = new File(pkiDir,fileName);
+            if(file.exists()){
+                Log.v(TAG,fileName + " exists");
+                FileListItem foundFile = mFileListAdapter.search(fileName);
+                foundFile.setInpsected(true);
+                if(foundFile != null){
+                    try {
+                        PKCS10CertificationRequest csrReq = new PKCS10CertificationRequest(fileToBytes(file));
+                        foundFile.setValid(true);
+                    } catch (IOException e) {
+                        foundFile.setValid(false);
+                        Log.e(TAG,"Could not load as a csr",e);
+                    }
+                } else {
+                   Log.v(TAG,"Could not find file with mFileListAdapter.search: " + fileName);
+                }
+
+            }
+        }
+        mFileListAdapter.notifyDataSetChanged();
+    }
+
+
+    private byte[] fileToBytes(File file) throws IOException {
+
+        //init array with file length
+        byte[] bytesArray = new byte[(int) file.length()];
+
+        FileInputStream fis = new FileInputStream(file);
+        fis.read(bytesArray); //read file into bytes[]
+        fis.close();
+
+        return bytesArray;
     }
 
 
