@@ -9,19 +9,32 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Security;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
 public class PKIFilesActivity extends Activity {
     public static final String TAG = "PKIFilesActivity";
     public static final String PKI_DIR_NAME = "MILHEALTHSDDPKI";
+    public static final String PKI_SIGN_CERTS_DIR_NAME = "signed";
     private boolean hasDir = false;
     private File pkiDir;
     private FileListAdapter mFileListAdapter;
@@ -35,6 +48,7 @@ public class PKIFilesActivity extends Activity {
         if(hasDir){
             loadFiles();
         }
+        Security.addProvider(new BouncyCastleProvider());
     }
 
     private void checkExternalStorage(){
@@ -120,6 +134,47 @@ public class PKIFilesActivity extends Activity {
 
     }
 
+    public void signCert(String filename){
+        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+        FileListItem foundFile = mFileListAdapter.search(filename);
+        File file = new File(pkiDir,filename);
+        Log.v(TAG,"Signed cert called for file: " + filename);
+
+        try {
+            PKCS10CertificationRequest csrReq = new PKCS10CertificationRequest(fileToBytes(file));
+            if(caPreferences.isSetup()){
+                String extension = "";
+
+                int i = filename.lastIndexOf('.');
+                if (i > 0) {
+                    extension = filename.substring(i+1);
+                }
+                String certFileName = filename.replace(extension,"crt");
+                String issuerCNString = String.format(PKIActivity.CA_CN_PATTERN, PKIActivity.CA_CN);
+                X509Certificate signedClientCert = CSRHelper.sign(csrReq,caPreferences.getKeyPair(),issuerCNString);
+                File signedDir = new File(pkiDir, PKI_SIGN_CERTS_DIR_NAME);
+                File signedCert = new File(signedDir, certFileName);
+                signedCert.createNewFile();
+                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(signedCert));
+                bos.write(signedClientCert.getEncoded());
+                bos.flush();
+                bos.close();
+            }
+        } catch (IOException e) {
+            Log.e(TAG,"CSR Signing error 1",e);
+        } catch (CertificateException e) {
+            Log.e(TAG,"CSR Signing error 2",e);
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG,"CSR Signing error 3",e);
+        } catch (InvalidKeySpecException e) {
+            Log.e(TAG,"CSR Signing error 4",e);
+        } catch (OperatorCreationException e) {
+            Log.e(TAG,"CSR Signing error 5",e);
+        } catch (NoSuchProviderException e) {
+            Log.e(TAG,"CSR Signing error 6",e);
+        }
+    }
+
     public void inspectFiles(View view){
         ArrayList<String> filenames = mFileListAdapter.getSelectedFileNames();
         for(int i=0; i<filenames.size(); i++) {
@@ -132,7 +187,15 @@ public class PKIFilesActivity extends Activity {
                 if(foundFile != null){
                     try {
                         PKCS10CertificationRequest csrReq = new PKCS10CertificationRequest(fileToBytes(file));
+//Could bet PEM to der conversion working
+//                        PEMParser pemParser = new PEMParser(new FileReader(file.getAbsoluteFile()));
+//                        X509CertificateHolder caCertificate = (X509CertificateHolder) pemParser.readObject();
+//
+//                        PKCS10CertificationRequest csrReq2 = new PKCS10CertificationRequest(caCertificate.getEncoded());
+//                        foundFile.setValid(true);
+                        String certString = printCSRInfo(csrReq);
                         foundFile.setValid(true);
+                        foundFile.setCert(fileName + " \n" +certString);
                     } catch (IOException e) {
                         foundFile.setValid(false);
                         Log.e(TAG,"Could not load as a csr",e);
@@ -146,7 +209,25 @@ public class PKIFilesActivity extends Activity {
         mFileListAdapter.notifyDataSetChanged();
     }
 
+    private String printCSRInfo(PKCS10CertificationRequest certRequest) throws IOException {
+        X500Name x500Name = certRequest.getSubject();
+//        RDN email = x500Name.getRDNs(BCStyle.EmailAddress)[0];
+        RDN cn = x500Name.getRDNs(BCStyle.CN)[0];
+        RDN organization = x500Name.getRDNs(BCStyle.O)[0];
+        RDN organizationUnit = x500Name.getRDNs(BCStyle.OU)[0];
+        RDN country = x500Name.getRDNs(BCStyle.C)[0];
+        RDN locality = x500Name.getRDNs(BCStyle.L)[0];
+        String cnStr = cn.getFirst().getValue().toString();
+        String organizationStr = organization.getFirst().getValue().toString();
+        String organizationUnitStr = organizationUnit.getFirst().getValue().toString();
+        String countryStr = country.getFirst().getValue().toString();
+        String localityStr = locality.getFirst().getValue().toString();
 
+        String certString = String.format("CN: %s\nOrg: %s\nUnit: %s\nCountry: %s\nLocality: %s\n",
+                cnStr,organizationStr,organizationUnitStr,countryStr,localityStr);
+        Log.v(TAG,certString);
+        return certString;
+    }
     private byte[] fileToBytes(File file) throws IOException {
 
         //init array with file length
@@ -180,12 +261,18 @@ public class PKIFilesActivity extends Activity {
 
     public File getPublicAlbumStorageDir(String albumName) {
         // Get the directory for the user's public pictures directory.
-        File file = new File(Environment.getExternalStoragePublicDirectory(
+        File csrDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), albumName);
-        if (!file.mkdirs()) {
+        if (!csrDir.mkdirs()) {
             Log.e(TAG, "Directory not created");
         }
-        return file;
+
+        File signedDir = new File(csrDir, PKI_SIGN_CERTS_DIR_NAME);
+        if(!signedDir.mkdirs()){
+            Log.e(TAG, "Signed cert Directory not created");
+        }
+
+        return csrDir;
     }
 
 }

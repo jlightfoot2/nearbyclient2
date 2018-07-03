@@ -2,6 +2,7 @@ package mil.health.sdd.nearbyclient2;
 
 public class FileListItem {
     private String name;
+    private String cert = "";
     private boolean isInpsected = false;
     private boolean isValid = false;
     public FileListItem(String name){
@@ -10,6 +11,18 @@ public class FileListItem {
 
     public String getName(){
         return name;
+    }
+
+    public void setName(String name){
+        this.name = name;
+    }
+
+    public String getCert(){
+        return cert;
+    }
+
+    public void setCert(String cert){
+        this.cert = cert;
     }
 
     public boolean isValid(){
