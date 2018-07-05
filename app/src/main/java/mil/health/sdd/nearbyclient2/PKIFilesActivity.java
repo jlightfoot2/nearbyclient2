@@ -22,6 +22,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Security;
@@ -30,6 +32,10 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 public class PKIFilesActivity extends Activity {
     public static final String TAG = "PKIFilesActivity";
@@ -46,7 +52,24 @@ public class PKIFilesActivity extends Activity {
         mListView = (ListView) findViewById(R.id.dynamicCSRList);
         this.checkExternalStorage();
         if(hasDir){
+            Log.v(TAG,"onCreate > hasDir == true");
             loadFiles();
+            CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+            try {
+                caPreferences.encryptDecryptTest();
+            } catch (NoSuchPaddingException e) {
+                e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
+            } catch (InvalidKeyException e) {
+                e.printStackTrace();
+            } catch (BadPaddingException e) {
+                e.printStackTrace();
+            } catch (IllegalBlockSizeException e) {
+                e.printStackTrace();
+            }
         }
         Security.addProvider(new BouncyCastleProvider());
     }
