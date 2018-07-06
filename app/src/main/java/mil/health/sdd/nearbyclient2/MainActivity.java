@@ -16,11 +16,12 @@ public class MainActivity extends Activity {
     public static final String EXTRA_ADVERTISE_MESSAGE_STRING = "user_button";
     public static final String TAG = "MainActivity";
     public static final String EXTRA_MESSAGE = "mil.health.sdd.nearbyclient2.MESSAGE";
+    public String keyStoreAlias;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        keyStoreAlias = getString(R.string.android_key_store_alias);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
 
@@ -59,7 +60,7 @@ public class MainActivity extends Activity {
     }
 
     public void deleteCertificates(View view) {
-        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
         caPreferences.deleteAll();
         notifyUser("Keys and Certs deleted");
     }

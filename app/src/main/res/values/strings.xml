@@ -9,4 +9,5 @@
     <string name="ca_x509_cert_name">ca_x509_cert</string>
     <string name="ca_public_key_name">ca_public_key</string>
     <string name="preference_pki_filename">preference_pki</string>
+    <string name="android_key_store_alias">amurderofcrows</string>
 </resources>

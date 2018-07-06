@@ -22,8 +22,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Security;
@@ -33,13 +31,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-
 public class PKIFilesActivity extends Activity {
     public static final String TAG = "PKIFilesActivity";
     public static final String PKI_DIR_NAME = "MILHEALTHSDDPKI";
+    public  String keyStoreAlias;
     public static final String PKI_SIGN_CERTS_DIR_NAME = "signed";
     private boolean hasDir = false;
     private File pkiDir;
@@ -51,24 +46,15 @@ public class PKIFilesActivity extends Activity {
         setContentView(R.layout.activity_pkifiles);
         mListView = (ListView) findViewById(R.id.dynamicCSRList);
         this.checkExternalStorage();
+        keyStoreAlias = getString(R.string.android_key_store_alias);
         if(hasDir){
             Log.v(TAG,"onCreate > hasDir == true");
             loadFiles();
-            CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+            CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
             try {
-                caPreferences.encryptDecryptTest();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
+                caPreferences.testEncDec();
+            } catch (Exception e) {
+                Log.e(TAG,"FAILED: caPreferences.testEncDec()",e);
             }
         }
         Security.addProvider(new BouncyCastleProvider());
@@ -158,7 +144,7 @@ public class PKIFilesActivity extends Activity {
     }
 
     public void signCert(String filename){
-        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
         FileListItem foundFile = mFileListAdapter.search(filename);
         File file = new File(pkiDir,filename);
         Log.v(TAG,"Signed cert called for file: " + filename);
@@ -195,6 +181,8 @@ public class PKIFilesActivity extends Activity {
             Log.e(TAG,"CSR Signing error 5",e);
         } catch (NoSuchProviderException e) {
             Log.e(TAG,"CSR Signing error 6",e);
+        } catch (CAPreferencePrivateKeyDecryptException e) {
+            Log.e(TAG,"CSR Signing error 7",e);
         }
     }
 

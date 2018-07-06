@@ -27,24 +27,30 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
 
 public class PKIActivity extends Activity {
     private static final String TAG = "PKIActivity";
-
-    private static final String CA_KEY_ALIAS = "andoidIotCA";
+    public String keyStoreAlias;
     public static final String CA_CN ="android-dha-ca.local";
     public static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
     // private static final String CERT_DIR = "certs";
@@ -55,8 +61,8 @@ public class PKIActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pki);
         Log.v(TAG, "onCreate");
-
-        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename));
+        keyStoreAlias = getString(R.string.android_key_store_alias);
+        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
         if(!caPreferences.isSetup()){
             Log.v(TAG,"Setting up ca");
             notifyUser("Setting up CA");
@@ -87,6 +93,18 @@ public class PKIActivity extends Activity {
             } catch (CertificateException e) {
                 e.printStackTrace();
             } catch (OperatorCreationException e) {
+                e.printStackTrace();
+            } catch (InvalidKeyException e) {
+                e.printStackTrace();
+            } catch (UnrecoverableEntryException e) {
+                e.printStackTrace();
+            } catch (NoSuchPaddingException e) {
+                e.printStackTrace();
+            } catch (BadPaddingException e) {
+                e.printStackTrace();
+            } catch (KeyStoreException e) {
+                e.printStackTrace();
+            } catch (IllegalBlockSizeException e) {
                 e.printStackTrace();
             }
         }else{

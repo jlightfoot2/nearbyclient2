@@ -43,10 +43,12 @@ public class AdvertiseCAActivity extends Activity {
     public String mEndPointId = null;
     private byte[] csrRequestBytes = null;
     private Activity mActivity;
+    public String keyStoreAlias;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mActivity = this;
+        keyStoreAlias = getString(R.string.android_key_store_alias);
         setContentView(R.layout.activity_advertise_ca);
         connectionsClient = Nearby.getConnectionsClient(this);
         startAdvertising();
@@ -178,7 +180,7 @@ public class AdvertiseCAActivity extends Activity {
                         try {
                             PKCS10CertificationRequest csrRequest = new PKCS10CertificationRequest(csrRequestBytes);
                             Log.v(TAG,"successs: csr bytes converted to PKCS10CertificationRequest");
-                            CAPreference caPrefs = new CAPreference(mActivity,getString(R.string.preference_pki_filename));
+                            CAPreference caPrefs = new CAPreference(mActivity,getString(R.string.preference_pki_filename),keyStoreAlias);
                             if(caPrefs.isSetup()){
                                 String issuerCNString = String.format(PKIActivity.CA_CN_PATTERN, PKIActivity.CA_CN);
                                 X509Certificate signedClientCert = CSRHelper.sign(csrRequest,caPrefs.getKeyPair(),issuerCNString);
@@ -187,24 +189,27 @@ public class AdvertiseCAActivity extends Activity {
                                     mEndPointId, signedClientCertPayload);
                             }
                         } catch (IOException e) {
-                            e.printStackTrace();
+
                             notifyUser("Could not create PKCS10CertificationRequest");
                             Log.e(TAG,"Could not create PKCS10CertificationRequest",e);
                         } catch (CertificateException e) {
                             Log.e(TAG,"CertificateException",e);
-                            e.printStackTrace();
+
                         } catch (NoSuchAlgorithmException e) {
                             Log.e(TAG,"NoSuchAlgorithmException",e);
-                            e.printStackTrace();
+
                         } catch (InvalidKeySpecException e) {
                             Log.e(TAG,"InvalidKeySpecException",e);
-                            e.printStackTrace();
+
                         } catch (OperatorCreationException e) {
                             Log.e(TAG,"OperatorCreationException",e);
-                            e.printStackTrace();
+
                         } catch (NoSuchProviderException e) {
-                            Log.e(TAG,"OperatorCreationException",e);
-                            e.printStackTrace();
+                            Log.e(TAG,"NoSuchProviderException",e);
+
+                        } catch (CAPreferencePrivateKeyDecryptException e) {
+
+                            Log.e(TAG,"CAPreferencePrivateKeyDecryptException",e);
                         }
                     }
 
