@@ -10,9 +10,9 @@ import android.util.Log;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -24,7 +24,6 @@ import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.Security;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
@@ -33,6 +32,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -41,7 +41,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 class CAPreferencePrivateKeyDecryptException extends Exception{
     public CAPreferencePrivateKeyDecryptException(String message,Exception e){
@@ -50,6 +49,11 @@ class CAPreferencePrivateKeyDecryptException extends Exception{
 }
 
 class CAPreferenceException extends Exception{
+
+    public CAPreferenceException(String message){
+        super(message);
+    }
+
     public CAPreferenceException(String message,Exception e){
         super(message,e);
     }
@@ -99,47 +103,8 @@ public class CAPreference {
         return !(caPrivateKeyPref.isEmpty() || caPublicKeyPref.isEmpty() || caCertificatePref.isEmpty());
     }
 
-//    public void encryptDecryptTest() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-//        //see https://proandroiddev.com/security-best-practices-symmetric-encryption-with-aes-in-java-7616beaaade9
-//        SecureRandom secureRandom = new SecureRandom();
-//        byte[] key = new byte[CIPHER_KEY_SIZE_BYTES]; //TODO zero out key
-//        secureRandom.nextBytes(key);
-//        SecretKey secretKey = new SecretKeySpec(key, CIPHER_SECRET_KEY_ALG);
-//
-//        //create init vector
-//        byte[] iv = new byte[CIPHER_INIT_VECTOR_BYTES]; //NEVER REUSE THIS IV WITH SAME KEY
-//        secureRandom.nextBytes(iv); //TODO zero out iv?
-//
-//        //encrypt
-//        final Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-//        GCMParameterSpec parameterSpec = new GCMParameterSpec(CIPHER_BLOCK_SIZE_BITS, iv); //128 bit auth tag length
-//        cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
-//        String plainText = "They're taking our jobs. Der Dekmi Derbs";
-//        byte[] plainTextBytesStart = plainText.getBytes();
-//        byte[] cipherText = cipher.doFinal(plainTextBytesStart); //Base64? //we're encrypted!
-//
-//        //Decrypt process
-//        // deconstruct message
-//
-//        ByteBuffer byteBuffer = ByteBuffer.allocate(CIPHER_INIT_VECTOR_OFFSET_BYTES + iv.length + cipherText.length);
-//        byteBuffer.putInt(iv.length);
-//        byteBuffer.put(iv);
-//        byteBuffer.put(cipherText);
-//        byte[] cipherMessage = byteBuffer.array();
-//
-//        //init cipher and decrypt
-//        final Cipher cipher2 = Cipher.getInstance(CIPHER_TRANSFORMATION);
-//        cipher2.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, CIPHER_SECRET_KEY_ALG), new GCMParameterSpec(CIPHER_BLOCK_SIZE_BITS, iv));
-//
-//        byte[] plainTextBytesEnd = cipher2.doFinal(cipherText);
-//        if(plainTextBytesEnd.equals(plainTextBytesEnd)){
-//            Log.v(TAG,"SUCCESS: Test Enctypted and decrypted");
-//            Log.v(TAG, new String(plainTextBytesEnd));
-//        } else {
-//            Log.e(TAG,"FAILED Enctypted and decrypted test message");
-//        }
-//    }
 
+    //TODO remove and put in a unit or component test.
     public void testEncDec(){
         String message = "The quick brown fox jumped over the lazy dog";
         byte[] messageBytes = message.getBytes();
@@ -147,14 +112,22 @@ public class CAPreference {
             byte[] messageBytesEnc = encryptBytes(messageBytes);
             Log.v(TAG,"Encrypted Data: " + new String(messageBytesEnc));
             byte[] messageByteDec = decryptBytes(messageBytesEnc);
-            if(messageByteDec.equals(messageBytes)){
+            if(Arrays.equals(messageBytes,messageByteDec)){
                 Log.v(TAG,"SUCCESS:  encryptBytes and decryptBytes worked");
+                Log.v(TAG,"original: " + new String(messageBytes));
+                Log.v(TAG,"decrypted: " + new String(messageByteDec));
+            } else {
+                Log.v(TAG,"FAILED:  encryptBytes and decryptBytes worked");
                 Log.v(TAG,"original: " + new String(messageBytes));
                 Log.v(TAG,"decrypted: " + new String(messageByteDec));
             }
         } catch (Exception e) {
             Log.e(TAG,"testEncDec exception",e);
         }
+    }
+
+    public void testCAPrivateKeyStoreRetrieve(){
+
     }
 
     private void initSecretKey() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchPaddingException, InvalidKeyException {
@@ -211,47 +184,42 @@ public class CAPreference {
         return secretKeyEntry.getSecretKey();
     }
 
-    private byte[] encryptBytes(byte[] plainMessage) throws CertificateException, UnrecoverableEntryException, NoSuchAlgorithmException, KeyStoreException, IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-        SecureRandom secureRandom = new SecureRandom();
+    private byte[] encryptBytes(byte[] plainMessage) throws CertificateException, UnrecoverableEntryException, NoSuchAlgorithmException, KeyStoreException, IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, CAPreferenceException {
+
         SecretKey secretKey = getSecretKey();
 
-        //create init vector
-        byte[] iv = new byte[CIPHER_INIT_VECTOR_BYTES]; //NEVER REUSE THIS IV WITH SAME KEY
-        secureRandom.nextBytes(iv); //TODO zero out iv?
-
-        //encrypt
         final Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        GCMParameterSpec parameterSpec = new GCMParameterSpec(CIPHER_BLOCK_SIZE_BITS, iv); //128 bit auth tag length
-        //TODO java.security.InvalidAlgorithmParameterException: Caller-provided IV not permitted
-        /*
-https://github.com/googlesamples/android-FingerprintDialog/issues/10
-https://stackoverflow.com/questions/33214469/issue-while-using-android-fingerprint-iv-required-when-decrypting-use-ivparame
-https://proandroiddev.com/secure-data-in-android-initialization-vector-6ca1c659762c  //TODO start here
 
-        */
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
-        return cipher.doFinal(plainMessage); //Base64? //we're encrypted!
+        //test1 trying without parametric spec cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] iv = cipher.getIV();
+
+
+        if(iv.length != 12){
+          throw new CAPreferenceException("Invalid Iv Length");
+        }
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        outputStream.write(iv);
+        outputStream.write(cipher.doFinal(plainMessage));
+        return outputStream.toByteArray();
     }
 
     public byte[] decryptBytes(byte[] cipherText) throws CertificateException, UnrecoverableEntryException, NoSuchAlgorithmException, KeyStoreException, IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         byte[] key = new byte[CIPHER_KEY_SIZE_BYTES]; //TODO find out how to handle storing and extracting private key
-        SecretKey secretKey = getSecretKey();
-        byte[] iv = new byte[CIPHER_INIT_VECTOR_BYTES];
-        ByteBuffer byteBuffer = ByteBuffer.allocate(CIPHER_INIT_VECTOR_OFFSET_BYTES + iv.length + cipherText.length);
-        byteBuffer.putInt(iv.length);
-        byteBuffer.put(iv);
-        byteBuffer.put(cipherText);
-        byte[] cipherMessage = byteBuffer.array();
+        byte[] iv = Arrays.copyOfRange(cipherText,0,CIPHER_INIT_VECTOR_BYTES);
 
-        //init cipher and decrypt
+        GCMParameterSpec parameterSpec = new GCMParameterSpec(CIPHER_BLOCK_SIZE_BITS, iv);
+        SecretKey secretKey = getSecretKey();
+
         final Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, CIPHER_SECRET_KEY_ALG), new GCMParameterSpec(CIPHER_BLOCK_SIZE_BITS, iv));
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
 
-        return cipher.doFinal(cipherText);
+        return cipher.doFinal(Arrays.copyOfRange(cipherText,CIPHER_INIT_VECTOR_BYTES,cipherText.length));
     }
 
-    public byte[] encryptPrivateKey(PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, CertificateException, UnrecoverableEntryException, KeyStoreException, IOException {
+    public byte[] encryptPrivateKey(PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, CertificateException, UnrecoverableEntryException, KeyStoreException, IOException, CAPreferenceException {
 
         return encryptBytes(privateKey.getEncoded());
     }
@@ -262,7 +230,7 @@ https://proandroiddev.com/secure-data-in-android-initialization-vector-6ca1c6597
         return decryptedKey;//TODO change method to return private key
     }
 
-    public void store(KeyPair caKeyPair, X509Certificate caCert) throws CertificateException, NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, UnrecoverableEntryException, KeyStoreException, IOException {
+    public void store(KeyPair caKeyPair, X509Certificate caCert) throws CertificateException, NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, UnrecoverableEntryException, KeyStoreException, IOException, CAPreferenceException {
         SharedPreferences.Editor pkiEditor = sharedPreferences.edit();
         pkiEditor.putString(context.getString(R.string.ca_public_key_name), Base64.encodeToString(caKeyPair.getPublic().getEncoded(), BASE64_CONF));
         pkiEditor.putString(context.getString(R.string.ca_private_key_name), Base64.encodeToString(encryptPrivateKey(caKeyPair.getPrivate()), BASE64_CONF));

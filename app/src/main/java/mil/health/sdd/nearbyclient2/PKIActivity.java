@@ -53,9 +53,7 @@ public class PKIActivity extends Activity {
     public String keyStoreAlias;
     public static final String CA_CN ="android-dha-ca.local";
     public static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
-    // private static final String CERT_DIR = "certs";
-    // private static final String PRIVATE_KEY_FILE_NAME = "mqtt_client.key";
-    // private static final String CA_FILE_NAME = "ca.key";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,6 +79,28 @@ public class PKIActivity extends Activity {
                 X509Certificate caCert = signBC(testCSR,rootKeyPair); //we are self-signing
 
                 caPreferences.store(rootKeyPair,caCert);
+//TODO move to test
+//                  boolean keyPairRetrieved = false;
+//                try {
+//                    KeyPair storedKP = caPreferences.getKeyPair();
+//                    keyPairRetrieved = true;
+//                    byte[] storedPrivate = storedKP.getPrivate().getEncoded();
+//                    if(Arrays.equals(storedPrivate,ogPrivatekey)){
+//                        Log.v(TAG,"SUCCESS stored private key matches og");
+//                        Log.v(TAG,new String(ogPrivatekey));
+//                        Log.v(TAG,new String(storedPrivate));
+//                    } else {
+//                        Log.v(TAG,"FAILURE stored private key DOES NOT MATCH og");
+//                    }
+//                } catch (InvalidKeySpecException e) {
+//                    e.printStackTrace();
+//                } catch (CAPreferencePrivateKeyDecryptException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                if(!keyPairRetrieved){
+//                   Log.v(TAG,"FAILURE: could not retrieve stored key pair");
+//                }
                 notifyUser("CA Done");
             } catch (NoSuchProviderException e) {
                 e.printStackTrace();
@@ -105,6 +125,8 @@ public class PKIActivity extends Activity {
             } catch (KeyStoreException e) {
                 e.printStackTrace();
             } catch (IllegalBlockSizeException e) {
+                e.printStackTrace();
+            } catch (CAPreferenceException e) {
                 e.printStackTrace();
             }
         }else{

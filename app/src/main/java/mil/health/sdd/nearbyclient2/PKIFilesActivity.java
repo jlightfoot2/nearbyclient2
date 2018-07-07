@@ -51,11 +51,11 @@ public class PKIFilesActivity extends Activity {
             Log.v(TAG,"onCreate > hasDir == true");
             loadFiles();
             CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
-            try {
-                caPreferences.testEncDec();
-            } catch (Exception e) {
-                Log.e(TAG,"FAILED: caPreferences.testEncDec()",e);
-            }
+//            try {
+//                caPreferences.testEncDec();
+//            } catch (Exception e) {
+//                Log.e(TAG,"FAILED: caPreferences.testEncDec()",e);
+//            }
         }
         Security.addProvider(new BouncyCastleProvider());
     }
