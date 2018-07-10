@@ -99,7 +99,9 @@ public class PKIFilesActivity extends Activity {
 
         for (int i=0; i< files.length; i++)
         {
-            filesList.add(new FileListItem(files[i].getName()));
+            if(!files[i].isDirectory()) {
+                filesList.add(new FileListItem(files[i].getName()));
+            }
         }
 
         return filesList;
@@ -198,7 +200,7 @@ public class PKIFilesActivity extends Activity {
                 if(foundFile != null){
                     try {
                         PKCS10CertificationRequest csrReq = new PKCS10CertificationRequest(fileToBytes(file));
-//Could bet PEM to der conversion working
+//Couldn't get PEM to der conversion working
 //                        PEMParser pemParser = new PEMParser(new FileReader(file.getAbsoluteFile()));
 //                        X509CertificateHolder caCertificate = (X509CertificateHolder) pemParser.readObject();
 //
@@ -287,49 +289,3 @@ public class PKIFilesActivity extends Activity {
     }
 
 }
-//    private void listDirFiles(){
-//        File[] files = pkiDir.listFiles();
-//
-//        String[] newArr = new String[files.length];
-//
-//        notifyUser(files.length + " CSRs available");
-//
-//        for (int i=0; i< files.length; i++)
-//        {
-//            newArr[i] = files[i].getName();
-//        }
-//
-//        Log.v(TAG,"Spinner items length: " +  files.length);
-//
-//        Spinner spinner = (Spinner) findViewById(R.id.spinnerCSRs);
-//
-//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-//                this, android.R.layout.simple_spinner_item, newArr);
-//
-//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//
-//        spinner.setAdapter(adapter);
-//
-//    }
-
-//    private void listDirFiles2(){
-//        File[] files = pkiDir.listFiles();
-//
-//        String[] newArr = new String[files.length];
-//
-//        notifyUser(files.length + " CSRs available");
-//
-//        for (int i=0; i< files.length; i++)
-//        {
-//            newArr[i] = files[i].getName();
-//        }
-//
-//        Log.v(TAG,"Checkbox items length: " +  files.length);
-//
-//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-//                this, android.R.layout.simple_list_item_1, newArr);
-//
-//        ListView listView = (ListView) findViewById(R.id.dynamicCSRList);
-//        listView.setAdapter(adapter);
-//
-//    }

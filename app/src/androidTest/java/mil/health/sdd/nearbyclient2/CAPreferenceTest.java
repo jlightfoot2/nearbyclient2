@@ -4,11 +4,13 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.MediumTest;
+import android.util.Log;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -22,6 +24,7 @@ import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -32,9 +35,23 @@ public class CAPreferenceTest {
     public static final String PREFERENCE_FILE_NAME = "test_pki_preferences_file";
     public static final String ANDROID_KEYSTORE_ALIAS = "aflockofgeese";
     public static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
+    public static final String TAG = "CAPreferenceTest";
     private SharedPreferences sharedPreferences;
     KeyPair rootKeyPair;
     PKCS10CertificationRequest rootKeyPairCSR;
+
+
+    @BeforeClass
+    public static void setUpBeforeClass() throws Exception {
+        Log.v(TAG,"setUpBeforeClass()");
+        Context context = InstrumentationRegistry.getTargetContext();
+        SharedPreferences sharedPreferences = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE);
+        Map<String, ?> allItems = sharedPreferences.getAll();
+        SharedPreferences.Editor pkiEditor = sharedPreferences.edit();
+        pkiEditor.clear();
+        pkiEditor.commit();
+    }
+
     @Before
     public void before() throws IOException, OperatorCreationException, NoSuchProviderException, NoSuchAlgorithmException {
         Context context = InstrumentationRegistry.getTargetContext();

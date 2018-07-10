@@ -59,30 +59,8 @@ public class PKIActivity extends Activity {
                 Log.v(TAG,rootKeyPair.getPublic().getAlgorithm());
                 Log.v(TAG,rootKeyPair.getPublic().getFormat());
 
-
                 caPreferences.store(mCAHelper.getKeyPair(),mCAHelper.getCertificate());
-//TODO move to test
-//                  boolean keyPairRetrieved = false;
-//                try {
-//                    KeyPair storedKP = caPreferences.getKeyPair();
-//                    keyPairRetrieved = true;
-//                    byte[] storedPrivate = storedKP.getPrivate().getEncoded();
-//                    if(Arrays.equals(storedPrivate,ogPrivatekey)){
-//                        Log.v(TAG,"SUCCESS stored private key matches og");
-//                        Log.v(TAG,new String(ogPrivatekey));
-//                        Log.v(TAG,new String(storedPrivate));
-//                    } else {
-//                        Log.v(TAG,"FAILURE stored private key DOES NOT MATCH og");
-//                    }
-//                } catch (InvalidKeySpecException e) {
-//                    e.printStackTrace();
-//                } catch (CAPreferencePrivateKeyDecryptException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                if(!keyPairRetrieved){
-//                   Log.v(TAG,"FAILURE: could not retrieve stored key pair");
-//                }
+
                 notifyUser("CA Done");
             } catch (NoSuchProviderException e) {
                 e.printStackTrace();
