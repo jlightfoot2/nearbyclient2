@@ -21,6 +21,7 @@ import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
@@ -59,5 +60,20 @@ public class CAPreferenceTest {
         Context context = InstrumentationRegistry.getTargetContext();
         CAPreference caPreference = new CAPreference(context,PREFERENCE_FILE_NAME,ANDROID_KEYSTORE_ALIAS);
         assertEquals(caPreference.isSetup(),false);
+    }
+
+    @Test
+    public void ac_storage_integrity() throws Exception {
+        Context context = InstrumentationRegistry.getTargetContext();
+        CAPreference caPreference = new CAPreference(context,PREFERENCE_FILE_NAME,ANDROID_KEYSTORE_ALIAS);
+        CAHelper caHelper = new CAHelper(new BouncyCastleProvider(),PKIActivity.CA_CN_PATTERN,PKIActivity.CA_CN);
+        caHelper.init();
+
+        caPreference.store(caHelper.getKeyPair(),caHelper.getCertificate());
+        KeyPair storedKeyPair = caPreference.getKeyPair();
+
+        Arrays.equals(caHelper.getKeyPair().getPrivate().getEncoded(),storedKeyPair.getPrivate().getEncoded());
+
+        Arrays.equals(caHelper.getKeyPair().getPublic().getEncoded(),storedKeyPair.getPublic().getEncoded());
     }
 }
