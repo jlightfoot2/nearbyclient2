@@ -1,17 +1,17 @@
 package mil.health.sdd.nearbyclient2;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_ADVERTISE_MESSAGE = "mil.health.sdd.nearbyclient2.ADVERTISE_MESSAGE";
     public static final String EXTRA_ADVERTISE_MESSAGE_STRING = "user_button";
     public static final String TAG = "MainActivity";

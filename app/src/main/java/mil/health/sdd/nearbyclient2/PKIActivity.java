@@ -1,6 +1,7 @@
 package mil.health.sdd.nearbyclient2;
 
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,6 +40,8 @@ public class PKIActivity extends Activity {
         setContentView(R.layout.activity_pki);
         Log.v(TAG, "onCreate");
         keyStoreAlias = getString(R.string.android_key_store_alias);
+
+        FragmentManager fm = getFragmentManager();
 
         CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
         if(!caPreferences.isSetup()){

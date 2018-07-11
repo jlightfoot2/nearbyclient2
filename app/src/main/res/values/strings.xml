@@ -10,4 +10,7 @@
     <string name="ca_public_key_name">ca_public_key</string>
     <string name="preference_pki_filename">preference_pki</string>
     <string name="android_key_store_alias">amurderofcrows</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
