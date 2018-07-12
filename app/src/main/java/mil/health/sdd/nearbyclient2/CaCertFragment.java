@@ -16,10 +16,11 @@ import android.widget.TextView;
  */
 public class CaCertFragment extends Fragment {
     CaCertificateListenter mCallback;
+    CertInfo certInfo;
 
-//    public CaCertFragment() {
-//        // Required empty public constructor
-//    }
+    public CaCertFragment() {
+
+    }
 @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -44,18 +45,37 @@ public class CaCertFragment extends Fragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         // Set values for view here
-        TextView tv = (TextView) view.findViewById(R.id.textViewFragmentTitle);
+        TextView tTitle = (TextView) view.findViewById(R.id.textViewFragmentTitle);
+        TextView tCountry = (TextView) view.findViewById(R.id.textViewFragmentCountry);
+        TextView tState = (TextView) view.findViewById(R.id.textViewFragmentState);
+        TextView tLocality = (TextView) view.findViewById(R.id.textViewFragmentLocality);
+        TextView tOrganization = (TextView) view.findViewById(R.id.textViewFragmentOrganization);
+
+
+
         Button bDelete = (Button) view.findViewById(R.id.buttonFragmentDelete);
 
         // update view
-        tv.setText("CA Cert here");
-        bDelete.setText("CA Delete");
+
+        if(certInfo == null){
+            tTitle.setText("Empty Cert");
+        } else {
+            tTitle.setText(certInfo.getCn());
+            tCountry.setText(certInfo.getCountry());
+            tState.setText(certInfo.getState());
+            tLocality.setText(certInfo.getLocality());
+            tOrganization.setText(certInfo.getOrganization());
+        }
         bDelete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                mCallback.onClickDelete();
             }
         });
+    }
+
+    public void setCert(CertInfo certInfo){
+        this.certInfo = certInfo;
     }
 
     public interface CaCertificateListenter{

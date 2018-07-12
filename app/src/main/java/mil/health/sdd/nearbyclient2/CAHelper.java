@@ -1,5 +1,7 @@
 package mil.health.sdd.nearbyclient2;
 
+import android.util.Log;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.Certificate;
@@ -40,16 +42,28 @@ public class CAHelper {
     private KeyPair mCAKeyPair;
     private X509Certificate mCACertificate; //x509
     private CertInfo certInfo;
-    public static final String SUBJECT_PATTERN ="CN=%s, O=DHA, OU=SDD ST=%s L=%s C=%s";
+    private X500Name x500Name;
+    private final String TAG = "CAHelper";
+    public static final String SUBJECT_PATTERN ="C=%s, ST=%s, L=%s, O=DHA, OU=SDD, CN=%s";
     public CAHelper(Provider provider,CertInfo info){
-        this.subjectString = String.format(SUBJECT_PATTERN,info.getCn(),info.getState(),info.getLocality(),info.getCountry());
+        this.subjectString = String.format(SUBJECT_PATTERN,info.getCountry(),info.getState(),info.getLocality(),info.getCn());
+        Log.v(TAG,subjectString);
         certInfo = info;
+        this.provider = provider;
     }
 
+    /**
+     * @deprecated
+     *
+     * @param provider
+     * @param subjectPattern
+     * @param cn
+     */
     public CAHelper(Provider provider,String subjectPattern, String cn){
         this.subjectString = String.format(subjectPattern,cn);
         certInfo = new CertInfo();
         certInfo.setCountry(cn);
+        this.provider = provider;
     }
 
 
@@ -124,7 +138,7 @@ public class CAHelper {
     }
 
     public PKCS10CertificationRequest generateCSR(KeyPair keyPair) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, OperatorCreationException {
-        return CSRHelper.generateCSR(keyPair,certInfo.getCn());
+        return CSRHelper.generateCSR(keyPair,new X500Name(subjectString));
     }
 
     private KeyPair makeKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException {

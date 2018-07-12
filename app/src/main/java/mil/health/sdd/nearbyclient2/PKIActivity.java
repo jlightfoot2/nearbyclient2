@@ -45,6 +45,47 @@ public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaC
     private boolean caSetup = false;
     CaCertFragment certFragment;
     CaCertEditFragment certEditFragment;
+    Provider bcProvider;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_pki);
+        Log.v(TAG, "onCreate");
+        keyStoreAlias = getString(R.string.android_key_store_alias);
+
+        bcProvider = new BouncyCastleProvider();
+        Security.addProvider(bcProvider);
+
+        caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
+        caSetup = caPreferences.isSetup();
+        FragmentManager fm = getSupportFragmentManager();
+        if(!caSetup){
+            certEditFragment = new CaCertEditFragment();
+            FragmentTransaction ft1 = fm.beginTransaction();
+            ft1.add(R.id.fragmentCaCertContainer,certEditFragment);
+            ft1.commit();
+        }else{
+            Log.v(TAG,"CA already setup");
+            notifyUser("CA already setup");
+            Log.v(TAG,"adding fragment");
+
+            try {
+                Log.v(TAG,caPreferences.getCertificate().toString());
+                CertInfo certInfo = CAPreference.getCertInfo(caPreferences.getCertificate());
+                Log.v(TAG,certInfo.toString());
+                certFragment = new CaCertFragment();
+                certFragment.setCert(certInfo);
+            } catch (CertificateException e) {
+                Log.e(TAG,"CertificateException",e);
+            }
+
+            FragmentTransaction ft2 = fm.beginTransaction();
+            ft2.add(R.id.fragmentCaCertContainer,certFragment);
+            ft2.commit();
+        }
+    }
 
     public void onClickDelete(){
         Log.v(TAG,"onClickDelete");
@@ -80,43 +121,19 @@ public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaC
     }
 
     public void submitCaCert(CertInfo certInfo){
-
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pki);
-        Log.v(TAG, "onCreate");
-        keyStoreAlias = getString(R.string.android_key_store_alias);
-
-
-
-        caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
-        caSetup = caPreferences.isSetup();
+        buildCaKeys(certInfo);
         FragmentManager fm = getSupportFragmentManager();
-        if(!caSetup){
-            certEditFragment = new CaCertEditFragment();
-            FragmentTransaction ft1 = fm.beginTransaction();
-            ft1.add(R.id.fragmentCaCertContainer,certEditFragment);
-            ft1.commit();
-        }else{
-            Log.v(TAG,"CA already setup");
-            notifyUser("CA already setup");
-            Log.v(TAG,"adding fragment");
-            certFragment = new CaCertFragment();
-
-            FragmentTransaction ft2 = fm.beginTransaction();
-            ft2.add(R.id.fragmentCaCertContainer,certFragment);
-            ft2.commit();
-        }
+        FragmentTransaction ft2 = fm.beginTransaction();
+        certFragment = new CaCertFragment();
+        certFragment.setCert(certInfo);
+        ft2.replace(R.id.fragmentCaCertContainer,certFragment);
+        ft2.commit();
     }
 
-    private void buildCaKeys(){
+    private void buildCaKeys(CertInfo certInfo){
         try {
-            Provider bcProvider = new BouncyCastleProvider();
-            Security.addProvider(bcProvider);
-            mCAHelper = new CAHelper(bcProvider,CA_CN_PATTERN,CA_CN);
+
+            mCAHelper = new CAHelper(bcProvider,certInfo);
             mCAHelper.init();
 
 

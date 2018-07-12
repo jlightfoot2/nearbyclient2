@@ -41,6 +41,10 @@ public class CertInfo {
         this.country = country;
     }
 
+    public String toString(){
+        return this.getCn() + ", " + this.getOrganization() + ", " + this.getCountry() + ", " + this.getState() + ", " + this.getLocality();
+    }
+
     private String organization;
     private String cn;
     private String state;

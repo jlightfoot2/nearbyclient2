@@ -7,6 +7,10 @@ import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.Log;
 
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.ByteArrayInputStream;
@@ -21,11 +25,13 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.UnrecoverableEntryException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -172,12 +178,14 @@ public class CAPreference {
                 Log.e(TAG, "initSecretKey",e);
 
             }
+        }else{
+            Log.v(TAG,"Yes keystore DOES contain " + androidKeyStoreAlias);
         }
         if(hasErrors){
           return null;
         }
 
-        keyStore.load(null);
+//        keyStore.load(null);
         final KeyStore.SecretKeyEntry secretKeyEntry = (KeyStore.SecretKeyEntry) keyStore
                 .getEntry(androidKeyStoreAlias, null);
 
@@ -223,7 +231,7 @@ public class CAPreference {
 
         return encryptBytes(privateKey.getEncoded());
     }
-    //TODO this won't work until the privateKey issue is solved
+
     public byte[] decryptPrivateKey(byte[] cipherText) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, CertificateException, UnrecoverableEntryException, KeyStoreException, IOException {
 
         byte[] decryptedKey = decryptBytes(cipherText);
@@ -239,12 +247,55 @@ public class CAPreference {
         this.retrieveRawCerts();
     }
 
+    public static CertInfo getCertInfo(X509Certificate cert) throws CertificateEncodingException {
+      CertInfo certInfo = new CertInfo();
+        X500Name x500Name = new JcaX509CertificateHolder(cert).getSubject();
+        Principal p = cert.getSubjectDN();
+        Log.v(TAG,p.getName());
+
+//        RDN email = x500Name.getRDNs(BCStyle.EmailAddress)[0];
+        RDN cn = x500Name.getRDNs(BCStyle.CN)[0];
+        RDN organization = x500Name.getRDNs(BCStyle.O)[0];
+        RDN organizationUnit = x500Name.getRDNs(BCStyle.OU)[0];
+        RDN country = x500Name.getRDNs(BCStyle.C)[0];
+        RDN locality = x500Name.getRDNs(BCStyle.L)[0];
+        RDN state = x500Name.getRDNs(BCStyle.ST)[0];
+        String cnStr = cn.getFirst().getValue().toString();
+        String organizationStr = organization.getFirst().getValue().toString();
+        String organizationUnitStr = organizationUnit.getFirst().getValue().toString();
+        String countryStr = country.getFirst().getValue().toString();
+        String localityStr = locality.getFirst().getValue().toString();
+        String stateStr = state.getFirst().getValue().toString();
+        certInfo.setCountry(countryStr);
+        certInfo.setCn(cnStr);
+        certInfo.setOrganization(organizationStr);
+        certInfo.setLocality(localityStr);
+        certInfo.setState(stateStr);
+        return certInfo;
+    }
+
     public void deleteAll() {
         SharedPreferences.Editor pkiEditor = sharedPreferences.edit();
         pkiEditor.putString(context.getString(R.string.ca_public_key_name), "");
         pkiEditor.putString(context.getString(R.string.ca_private_key_name), "");
         pkiEditor.putString(context.getString(R.string.ca_x509_cert_name), "");
         pkiEditor.commit();
+        KeyStore keyStore = null;
+        try {
+            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+            keyStore.deleteEntry(androidKeyStoreAlias);
+
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         this.retrieveRawCerts();
     }
 
