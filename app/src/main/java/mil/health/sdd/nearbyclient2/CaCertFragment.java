@@ -1,6 +1,7 @@
 package mil.health.sdd.nearbyclient2;
 
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -14,12 +15,24 @@ import android.widget.TextView;
  * A simple {@link Fragment} subclass.
  */
 public class CaCertFragment extends Fragment {
+    CaCertificateListenter mCallback;
 
+//    public CaCertFragment() {
+//        // Required empty public constructor
+//    }
+@Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
 
-    public CaCertFragment() {
-        // Required empty public constructor
+        // This makes sure that the container activity has implemented
+        // the callback interface. If not, it throws an exception
+        try {
+            mCallback = (CaCertificateListenter) context;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(context.toString()
+                    + " must implement OnHeadlineSelectedListener");
+        }
     }
-
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -37,6 +50,16 @@ public class CaCertFragment extends Fragment {
         // update view
         tv.setText("CA Cert here");
         bDelete.setText("CA Delete");
+        bDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+               mCallback.onClickDelete();
+            }
+        });
+    }
+
+    public interface CaCertificateListenter{
+        public void onClickDelete();
     }
 
 }

@@ -44,7 +44,7 @@ import java.util.Map;
 
 public class CSRHelper {
     private final static String DEFAULT_SIGNATURE_ALGORITHM = "SHA256withRSA";
-    private final static String CN_PATTERN = "CN=%s, O=DHA, OU=SDD";
+    private final static String CN_PATTERN = "CN=%s, O=DHA, OU=SDD C=US ST=WA L=Tacoma";
     private static final String TAG = "CSRHelper";
     private static class JCESigner implements ContentSigner {
 

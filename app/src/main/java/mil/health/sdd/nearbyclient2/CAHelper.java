@@ -35,16 +35,23 @@ import java.util.Date;
 
 public class CAHelper {
 
-    private String caCNString;
-    private String caCN;
+    private String subjectString;
     private Provider provider;
     private KeyPair mCAKeyPair;
     private X509Certificate mCACertificate; //x509
-    public CAHelper(Provider provider,String caCNString, String caCN){
-        this.caCNString = caCNString;
-        this.caCN = caCN;
-        this.provider = provider;
+    private CertInfo certInfo;
+    public static final String SUBJECT_PATTERN ="CN=%s, O=DHA, OU=SDD ST=%s L=%s C=%s";
+    public CAHelper(Provider provider,CertInfo info){
+        this.subjectString = String.format(SUBJECT_PATTERN,info.getCn(),info.getState(),info.getLocality(),info.getCountry());
+        certInfo = info;
     }
+
+    public CAHelper(Provider provider,String subjectPattern, String cn){
+        this.subjectString = String.format(subjectPattern,cn);
+        certInfo = new CertInfo();
+        certInfo.setCountry(cn);
+    }
+
 
     /**
      * Creates new keypair to initialize CAHelper
@@ -76,8 +83,6 @@ public class CAHelper {
     private X509Certificate selfSign(PKCS10CertificationRequest inputCSR, KeyPair pair) throws NoSuchProviderException, IOException,
             OperatorCreationException, CertificateException, CertificateException {
 
-
-            String cnString = String.format(this.caCNString, this.caCN);
             AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder()
                     .find("SHA1withRSA");
             AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder()
@@ -95,7 +100,7 @@ public class CAHelper {
             Date expiryYear = cal.getTime();
 
             X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(
-                    new X500Name(cnString),
+                    new X500Name(subjectString),
                     new BigInteger("1"),
                     new Date(),
                     expiryYear,
@@ -119,7 +124,7 @@ public class CAHelper {
     }
 
     public PKCS10CertificationRequest generateCSR(KeyPair keyPair) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, OperatorCreationException {
-        return CSRHelper.generateCSR(keyPair,caCN);
+        return CSRHelper.generateCSR(keyPair,certInfo.getCn());
     }
 
     private KeyPair makeKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException {

@@ -1,9 +1,12 @@
 package mil.health.sdd.nearbyclient2;
 
-import android.app.Activity;
-import android.app.FragmentManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -26,13 +29,59 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+//import android.app.FragmentManager;
+//import android.app.FragmentTransaction;
 
-public class PKIActivity extends Activity {
+
+
+
+public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaCertificateListenter, CaCertEditFragment.EditCaCertListener {
     private static final String TAG = "PKIActivity";
     public String keyStoreAlias;
     public static final String CA_CN ="android-dha-ca.local";
     public static final String CA_CN_PATTERN ="CN=%s, O=DHA, OU=SDD";
     private CAHelper mCAHelper;
+    private CAPreference caPreferences;
+    private boolean caSetup = false;
+    CaCertFragment certFragment;
+    CaCertEditFragment certEditFragment;
+
+    public void onClickDelete(){
+        Log.v(TAG,"onClickDelete");
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+
+        builder.setMessage("You sure about that?")
+                .setTitle("Confirm");
+
+        builder.setPositiveButton("Yep", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked OK button
+                caPreferences.deleteAll();
+                caSetup = caPreferences.isSetup();
+                FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+                if(!(certFragment == null)){
+                    transaction.remove(certFragment);
+                    transaction.commit();
+                    certFragment = null;
+                }
+
+            }
+        });
+
+        builder.setNegativeButton("Nope", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User cancelled the dialog
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    public void submitCaCert(CertInfo certInfo){
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,60 +90,74 @@ public class PKIActivity extends Activity {
         Log.v(TAG, "onCreate");
         keyStoreAlias = getString(R.string.android_key_store_alias);
 
-        FragmentManager fm = getFragmentManager();
 
-        CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
-        if(!caPreferences.isSetup()){
-            Log.v(TAG,"Setting up ca");
-            notifyUser("Setting up CA");
-            try {
-                Provider bcProvider = new BouncyCastleProvider();
-                Security.addProvider(bcProvider);
-                mCAHelper = new CAHelper(bcProvider,CA_CN_PATTERN,CA_CN);
-                mCAHelper.init();
 
-                
-                KeyPair rootKeyPair = mCAHelper.getKeyPair();
-                Log.v(TAG,"Private key info");
-                Log.v(TAG,rootKeyPair.getPrivate().getAlgorithm());
-                Log.v(TAG,rootKeyPair.getPrivate().getFormat());
-                Log.v(TAG,"Public key info");
-                Log.v(TAG,rootKeyPair.getPublic().getAlgorithm());
-                Log.v(TAG,rootKeyPair.getPublic().getFormat());
-
-                caPreferences.store(mCAHelper.getKeyPair(),mCAHelper.getCertificate());
-
-                notifyUser("CA Done");
-            } catch (NoSuchProviderException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (CertificateException e) {
-                e.printStackTrace();
-            } catch (OperatorCreationException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
-            } catch (UnrecoverableEntryException e) {
-                e.printStackTrace();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (KeyStoreException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-            } catch (CAPreferenceException e) {
-                e.printStackTrace();
-            }
+        caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
+        caSetup = caPreferences.isSetup();
+        FragmentManager fm = getSupportFragmentManager();
+        if(!caSetup){
+            certEditFragment = new CaCertEditFragment();
+            FragmentTransaction ft1 = fm.beginTransaction();
+            ft1.add(R.id.fragmentCaCertContainer,certEditFragment);
+            ft1.commit();
         }else{
             Log.v(TAG,"CA already setup");
             notifyUser("CA already setup");
+            Log.v(TAG,"adding fragment");
+            certFragment = new CaCertFragment();
+
+            FragmentTransaction ft2 = fm.beginTransaction();
+            ft2.add(R.id.fragmentCaCertContainer,certFragment);
+            ft2.commit();
+        }
+    }
+
+    private void buildCaKeys(){
+        try {
+            Provider bcProvider = new BouncyCastleProvider();
+            Security.addProvider(bcProvider);
+            mCAHelper = new CAHelper(bcProvider,CA_CN_PATTERN,CA_CN);
+            mCAHelper.init();
+
+
+            KeyPair rootKeyPair = mCAHelper.getKeyPair();
+            Log.v(TAG,"Private key info");
+            Log.v(TAG,rootKeyPair.getPrivate().getAlgorithm());
+            Log.v(TAG,rootKeyPair.getPrivate().getFormat());
+            Log.v(TAG,"Public key info");
+            Log.v(TAG,rootKeyPair.getPublic().getAlgorithm());
+            Log.v(TAG,rootKeyPair.getPublic().getFormat());
+
+            caPreferences.store(mCAHelper.getKeyPair(),mCAHelper.getCertificate());
+
+            notifyUser("CA Done");
+            caSetup = true;
+        } catch (NoSuchProviderException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (OperatorCreationException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (UnrecoverableEntryException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (CAPreferenceException e) {
+            e.printStackTrace();
         }
     }
 
@@ -107,62 +170,4 @@ public class PKIActivity extends Activity {
         Toast toast = Toast.makeText(context, text, duration);
         toast.show();
     }
-
-//    private PKCS10CertificationRequest createTestCSR(KeyPair keyPair) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, OperatorCreationException {
-//        return CSRHelper.generateCSR(keyPair,CA_CN);
-//    }
-
-//    private KeyPair createRootKeyPairBC() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-//
-//        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC");
-//        keyPairGenerator.initialize(1024, new SecureRandom());
-//
-//        java.security.KeyPair keyPair = keyPairGenerator.generateKeyPair();
-//        return keyPair;
-//    }
-
-//    public static X509Certificate signBC(PKCS10CertificationRequest inputCSR, KeyPair pair)
-//            throws NoSuchProviderException, IOException,
-//            OperatorCreationException, CertificateException, CertificateException {
-//
-//        String cnString = String.format(CA_CN_PATTERN, CA_CN);
-//        AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder()
-//                .find("SHA1withRSA");
-//        AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder()
-//                .find(sigAlgId);
-//
-//
-//        AsymmetricKeyParameter caPrivateKey = PrivateKeyFactory.createKey(pair.getPrivate().getEncoded());
-//
-//        SubjectPublicKeyInfo keyInfo = SubjectPublicKeyInfo.getInstance(pair.getPublic().getEncoded());
-//
-//
-//        Calendar cal = Calendar.getInstance();
-//        Date today = cal.getTime();
-//        cal.add(Calendar.YEAR, 3); // expires in 3 years
-//        Date expiryYear = cal.getTime();
-//
-//        X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(
-//                new X500Name(cnString),
-//                new BigInteger("1"),
-//                new Date(),
-//                expiryYear,
-//                inputCSR.getSubject(), //pk10Holder.getSubject(),
-//                keyInfo);
-//
-//        ContentSigner sigGen = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
-//                .build(caPrivateKey);
-//
-//        X509CertificateHolder holder = myCertificateGenerator.build(sigGen);
-//
-//        Certificate eeX509CertificateStructure = holder.toASN1Structure();
-//
-//        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
-//
-//        // Read Certificate
-//        InputStream is1 = new ByteArrayInputStream(eeX509CertificateStructure.getEncoded());
-//        X509Certificate theCert =  (X509Certificate) cf.generateCertificate(is1);
-//        is1.close();
-//        return theCert;
-//    }
 }
