@@ -102,35 +102,6 @@ public class CSRHelper {
     }
 
     //Create the certificate signing request (CSR) from private and public keys
-
-    /**
-     * @deprecated
-     *
-     * @param keyPair
-     * @param cn
-     * @return
-     * @throws IOException
-     * @throws OperatorCreationException
-     */
-    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, String cn) throws IOException,
-            OperatorCreationException {
-        String principal = String.format(CN_PATTERN, cn);
-
-        ContentSigner signer = new JCESigner (keyPair.getPrivate(),DEFAULT_SIGNATURE_ALGORITHM);
-
-        PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Name(principal), keyPair.getPublic());
-        ExtensionsGenerator extensionsGenerator = new ExtensionsGenerator();
-        extensionsGenerator.addExtension(Extension.basicConstraints, true, new BasicConstraints(
-                true));
-        csrBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest,
-                extensionsGenerator.generate());
-        PKCS10CertificationRequest csr = csrBuilder.build(signer);
-
-        return csr;
-    }
-
-    //Create the certificate signing request (CSR) from private and public keys
     public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Name x500Name) throws IOException,
             OperatorCreationException {
 
@@ -153,7 +124,6 @@ public class CSRHelper {
             throws NoSuchProviderException, IOException,
             OperatorCreationException, CertificateException, CertificateException {
 
-//        String cnString = String.format(CA_CN_PATTERN, CA_CN);
         AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder()
                 .find("SHA1withRSA");
         AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder()

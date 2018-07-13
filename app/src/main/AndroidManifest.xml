@@ -26,7 +26,8 @@
         </activity>
         <activity android:name=".AdvertiseCAActivity" />
         <activity android:name=".PKIActivity" />
-        <activity android:name=".PKIFilesActivity"></activity>
+        <activity android:name=".CSRFilesActivity" />
+        <activity android:name=".CertFilesActivity"></activity>
     </application>
 
 </manifest>

@@ -105,6 +105,11 @@ public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaC
                     transaction.remove(certFragment);
                     transaction.commit();
                     certFragment = null;
+
+                    certEditFragment = new CaCertEditFragment();
+                    FragmentTransaction ft1 = getSupportFragmentManager().beginTransaction();
+                    ft1.replace(R.id.fragmentCaCertContainer,certEditFragment);
+                    ft1.commit();
                 }
 
             }

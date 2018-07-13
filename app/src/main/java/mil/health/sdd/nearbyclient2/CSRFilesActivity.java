@@ -13,6 +13,7 @@ import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
@@ -20,6 +21,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.NoSuchAlgorithmException;
@@ -31,14 +33,14 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-public class PKIFilesActivity extends Activity {
-    public static final String TAG = "PKIFilesActivity";
+public class CSRFilesActivity extends Activity {
+    public static final String TAG = "CSRFilesActivity";
     public static final String PKI_DIR_NAME = "MILHEALTHSDDPKI";
     public  String keyStoreAlias;
     public static final String PKI_SIGN_CERTS_DIR_NAME = "signed";
     private boolean hasDir = false;
     private File pkiDir;
-    private FileListAdapter mFileListAdapter;
+    private CSRListAdapter mFileListAdapter;
     private ListView mListView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,7 +114,7 @@ public class PKIFilesActivity extends Activity {
 
         Log.v(TAG,"Checkbox items length: " +  filesList.size());
 
-        mFileListAdapter = new FileListAdapter(this,filesList);
+        mFileListAdapter = new CSRListAdapter(this,filesList);
 
         mListView.setAdapter(mFileListAdapter);
 
@@ -145,6 +147,24 @@ public class PKIFilesActivity extends Activity {
 
     }
 
+    private PKCS10CertificationRequest loadCSR(File file){
+        PKCS10CertificationRequest csr = null;
+        try {
+            csr = getCSRFromPem(file);
+
+        } catch (IOException e) {
+            Log.e(TAG,"Failed to load cert as PEM",e);
+        }
+        if(csr == null){
+            try {
+                csr = new PKCS10CertificationRequest(fileToBytes(file)); //DerFormat
+            } catch (IOException e) {
+                Log.e(TAG,"Failed to load cert as DER",e);
+            }
+        }
+        return csr;
+    }
+
     public void signCert(String filename){
         CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
         FileListItem foundFile = mFileListAdapter.search(filename);
@@ -152,7 +172,8 @@ public class PKIFilesActivity extends Activity {
         Log.v(TAG,"Signed cert called for file: " + filename);
 
         try {
-            PKCS10CertificationRequest csrReq = new PKCS10CertificationRequest(fileToBytes(file));
+
+            PKCS10CertificationRequest csrReq = loadCSR(file);
             if(caPreferences.isSetup()){
                 String extension = "";
 
@@ -188,6 +209,12 @@ public class PKIFilesActivity extends Activity {
         }
     }
 
+    private PKCS10CertificationRequest getCSRFromPem(File file) throws IOException {
+        PEMParser parser = new PEMParser(new FileReader(file));
+        PKCS10CertificationRequest csr = (PKCS10CertificationRequest) parser.readObject();
+        return csr;
+    }
+
     public void inspectFiles(View view){
         ArrayList<String> filenames = mFileListAdapter.getSelectedFileNames();
         for(int i=0; i<filenames.size(); i++) {
@@ -199,16 +226,15 @@ public class PKIFilesActivity extends Activity {
                 foundFile.setInpsected(true);
                 if(foundFile != null){
                     try {
-                        PKCS10CertificationRequest csrReq = new PKCS10CertificationRequest(fileToBytes(file));
-//Couldn't get PEM to der conversion working
-//                        PEMParser pemParser = new PEMParser(new FileReader(file.getAbsoluteFile()));
-//                        X509CertificateHolder caCertificate = (X509CertificateHolder) pemParser.readObject();
-//
-//                        PKCS10CertificationRequest csrReq2 = new PKCS10CertificationRequest(caCertificate.getEncoded());
-//                        foundFile.setValid(true);
-                        String certString = printCSRInfo(csrReq);
-                        foundFile.setValid(true);
-                        foundFile.setCert(fileName + " \n" +certString);
+                        PKCS10CertificationRequest csrReq = loadCSR(file);
+                        if(csrReq == null){
+                            foundFile.setValid(false);
+                        }else{
+                            String certString = printCSRInfo(csrReq);
+                            foundFile.setValid(true);
+                            foundFile.setCert(fileName + " \n" +certString);
+                        }
+
                     } catch (IOException e) {
                         foundFile.setValid(false);
                         Log.e(TAG,"Could not load as a csr",e);

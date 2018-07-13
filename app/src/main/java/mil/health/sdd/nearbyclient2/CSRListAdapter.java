@@ -1,6 +1,5 @@
 package mil.health.sdd.nearbyclient2;
 
-import android.app.Activity;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -8,26 +7,23 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class FileListAdapter extends ArrayAdapter<FileListItem> {
+public class CSRListAdapter extends ArrayAdapter<FileListItem> {
     private final String TAG = "FileListAdapter";
-    private Activity mContext;
+    private CSRFilesActivity mContext;
     private List<FileListItem> filesList = new ArrayList<>();
     private ArrayList<String> selectedFiles = new ArrayList<String>();
-    private int layoutListId;
-    private OnGetViewListener mViewListener;
 
-    public FileListAdapter(Activity context, ArrayList<FileListItem> list, int layoutListId){
+    public CSRListAdapter(CSRFilesActivity context, ArrayList<FileListItem> list){
         super(context, 0 , list);
         mContext = context;
-        mViewListener = (OnGetViewListener) context;
         filesList = list;
-        this.layoutListId = layoutListId;
     }
 
     @NonNull
@@ -36,18 +32,31 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
 //        Log.v(TAG,"FileListAdapter.getView called");
         View listItem = convertView;
         if(listItem == null)
-            listItem = LayoutInflater.from(mContext).inflate(layoutListId,parent,false);
+            listItem = LayoutInflater.from(mContext).inflate(R.layout.csr_list_item,parent,false);
 
         final FileListItem currentFile = filesList.get(position);
-        mViewListener.onGetView(position,filesList,listItem);
 
         CheckBox fileCheckbox = (CheckBox)listItem.findViewById(R.id.checkBoxCSRFile);
-//        Button fileSignButton = listItem.findViewById(R.id.buttonSignCSR);
-//        fileSignButton.setVisibility(View.INVISIBLE);
+        Button fileSignButton = listItem.findViewById(R.id.buttonSignCSR);
+        fileSignButton.setVisibility(View.INVISIBLE);
         fileCheckbox.setChecked(false);
         fileCheckbox.setText(currentFile.getName());
         fileCheckbox.setBackgroundColor(Color.TRANSPARENT);
-
+        if(currentFile.isInpsected()){
+            if(currentFile.isValid()){
+                fileCheckbox.setText(currentFile.getCert());
+                fileCheckbox.setBackgroundColor(Color.GREEN);
+                fileSignButton.setVisibility(View.VISIBLE);
+                fileSignButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mContext.signCert(currentFile.getName());
+                    }
+                });
+            } else {
+                fileCheckbox.setBackgroundColor(Color.RED);
+            }
+        }
 
         fileCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -64,8 +73,6 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
         return listItem;
     }
 
-
-
     public ArrayList<String> getSelectedFileNames(){
         return selectedFiles;
     }
@@ -78,9 +85,5 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
             }
         }
         return null;
-    }
-
-    public interface OnGetViewListener{
-        public void onGetView(int position, List<FileListItem> list, View convertView);
     }
 }

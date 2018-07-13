@@ -55,7 +55,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void handleStoredCSRs(View view) {
-        Intent intent = new Intent(this, PKIFilesActivity.class);
+        Intent intent = new Intent(this, CSRFilesActivity.class);
+        startActivity(intent);
+    }
+
+    public void manageSignedCerts(View view) {
+        Intent intent = new Intent(this, CertFilesActivity.class);
         startActivity(intent);
     }
 
