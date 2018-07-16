@@ -1,15 +1,11 @@
 package mil.health.sdd.nearbyclient2;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,25 +37,25 @@ public class FileListAdapter extends ArrayAdapter<FileListItem> {
         final FileListItem currentFile = filesList.get(position);
         mViewListener.onGetView(position,filesList,listItem);
 
-        CheckBox fileCheckbox = (CheckBox)listItem.findViewById(R.id.checkBoxCSRFile);
+//        CheckBox fileCheckbox = (CheckBox)listItem.findViewById(R.id.checkBoxCSRFile);
 //        Button fileSignButton = listItem.findViewById(R.id.buttonSignCSR);
 //        fileSignButton.setVisibility(View.INVISIBLE);
-        fileCheckbox.setChecked(false);
-        fileCheckbox.setText(currentFile.getName());
-        fileCheckbox.setBackgroundColor(Color.TRANSPARENT);
+//        fileCheckbox.setChecked(false);
+//        fileCheckbox.setText(currentFile.getName());
+//        fileCheckbox.setBackgroundColor(Color.TRANSPARENT);
 
 
-        fileCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    selectedFiles.add(buttonView.getText().toString());
-                }else{
-                    selectedFiles.remove(buttonView.getText().toString());
-                }
-                Log.v(TAG,selectedFiles.toString());
-            }
-        });
+//        fileCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+//                if (isChecked) {
+//                    selectedFiles.add(buttonView.getText().toString());
+//                }else{
+//                    selectedFiles.remove(buttonView.getText().toString());
+//                }
+//                Log.v(TAG,selectedFiles.toString());
+//            }
+//        });
 
         return listItem;
     }

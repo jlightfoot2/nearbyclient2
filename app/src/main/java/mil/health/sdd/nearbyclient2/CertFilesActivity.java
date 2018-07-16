@@ -1,12 +1,16 @@
 package mil.health.sdd.nearbyclient2;
 
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -35,18 +39,37 @@ public class CertFilesActivity extends AppCompatActivity implements FileListAdap
 
         Log.v(TAG,"Checkbox items length: " +  filesList.size());
 
-        mFileListAdapter = new FileListAdapter(this,filesList,R.layout.csr_list_item);
+        mFileListAdapter = new FileListAdapter(this,filesList,R.layout.file_list_item);
 
         mListView.setAdapter(mFileListAdapter);
 
     }
 
     public void onGetView(int position, List<FileListItem> fileList, View view){
-        CheckBox fileCheckBox = view.findViewById(R.id.checkBoxFile);
+        CheckBox fileCheckbox = view.findViewById(R.id.checkBoxFile);
         FileListItem fli = fileList.get(position);
-        fileCheckBox.setText(fli.getName());
+        fileCheckbox.setText(fli.getName());
+        fileCheckbox.setChecked(false);
+        fileCheckbox.setText(fli.getName());
+        fileCheckbox.setBackgroundColor(Color.TRANSPARENT);
+
+
     }
 
+    public void sendClick(View view){
+        Button fileCheckbox = (Button) view.findViewById(R.id.checkBoxFile);
+        Log.v(TAG,"sendClick");
+        notifyUser("CLICK!!!!");
+    }
+    private void notifyUser(String msg){
+
+        Context context = getApplicationContext();
+        CharSequence text = msg;
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
+    }
     private ArrayList<FileListItem> getFileList(){
         ArrayList<FileListItem> filesList = new ArrayList<>();
         File[] files = signedDir.listFiles();

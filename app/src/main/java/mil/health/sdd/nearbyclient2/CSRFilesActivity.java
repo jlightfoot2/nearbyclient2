@@ -45,7 +45,7 @@ public class CSRFilesActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pkifiles);
+        setContentView(R.layout.activity_csr_files);
         mListView = (ListView) findViewById(R.id.dynamicCSRList);
         this.checkExternalStorage();
         keyStoreAlias = getString(R.string.android_key_store_alias);
