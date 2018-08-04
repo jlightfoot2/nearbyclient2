@@ -1,10 +1,10 @@
 <resources>
     <string name="app_name">My Local CA</string>
-    <string name="button_advertise_ca">Advertise</string>
+    <string name="button_advertise_ca">Enroll Devices</string>
     <string name="advertise_ca_stop">Stop</string>
     <string name="text_advertising_active">Advertising Active</string>
     <string name="button_accept_connection">Accept Connection</string>
-    <string name="button_start_pki_activity">Handle Certs</string>
+    <string name="button_start_pki_activity">Manage Certificates</string>
     <string name="ca_private_key_name">ca_private_key</string>
     <string name="ca_x509_cert_name">ca_x509_cert</string>
     <string name="ca_public_key_name">ca_public_key</string>
@@ -13,4 +13,8 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="button_clear_ca_certs">Clear CA Certificates</string>
+    <string name="button_view_csr_files">View Signing Request Files</string>
+    <string name="button_view_signed_certificate_files">View Signed Certificate Files</string>
+    <string name="button_start_nsd_register">Register Network Service</string>
 </resources>

@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/buttonEnrollDevices"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
@@ -30,20 +30,7 @@
         android:text="@string/button_start_pki_activity"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button" />
-
-    <Button
-        android:id="@+id/buttonNewPKIActivity"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:onClick="deleteCertificates"
-        android:text="New Certificates"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonStartPKIActivity" />
+        app:layout_constraintTop_toBottomOf="@+id/buttonEnrollDevices" />
 
     <Button
         android:id="@+id/buttonHandleStoredCSRs"
@@ -52,18 +39,29 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:onClick="handleStoredCSRs"
-        android:text="Manage CSR Files"
+        android:text="@string/button_view_csr_files"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonNewPKIActivity" />
+        app:layout_constraintTop_toBottomOf="@+id/buttonStartPKIActivity" />
 
     <Button
-        android:id="@+id/button3"
+        android:id="@+id/buttonClearCACerts"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:onClick="manageSignedCerts"
-        android:text="Manage Certificate Files"
+        android:text="@string/button_clear_ca_certs"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/buttonHandleStoredCSRs" />
+
+    <Button
+        android:id="@+id/buttonRegisterService"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:onClick="registerCAService"
+        android:text="@string/button_start_nsd_register"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/buttonClearCACerts" />
 </android.support.constraint.ConstraintLayout>

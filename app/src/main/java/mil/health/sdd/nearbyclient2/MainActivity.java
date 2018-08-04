@@ -59,6 +59,11 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void registerCAService(View view){
+        Intent intent = new Intent(this, NSDActivity.class);
+        startActivity(intent);
+    }
+
     public void manageSignedCerts(View view) {
         Intent intent = new Intent(this, CertFilesActivity.class);
         startActivity(intent);
