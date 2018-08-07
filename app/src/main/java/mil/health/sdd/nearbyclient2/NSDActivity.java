@@ -1,13 +1,19 @@
 package mil.health.sdd.nearbyclient2;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
@@ -43,10 +49,14 @@ public class NSDActivity extends AppCompatActivity {
     NsdManager mNsdManager;
     Thread serverThread = null;
     private ServerSocketHandler mServerHandler;
+    private JWEHandler mJWEHandler;
     private Thread mServerSocketThread;
+    private Thread mJWECreateThread;
     private static final int SERVER_SOCKET_STARTED = 1;
     private static final int SERVER_CLIENT_ACCEPTED = 2;
-
+    private static final int JWE_SECRET_CREATED = 3;
+    private CAPreference mCaPreference;
+    private String keyStoreAlias;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,8 +68,9 @@ public class NSDActivity extends AppCompatActivity {
         super.onResume();
         Log.v(TAG,"onResume");
         mServerHandler = new ServerSocketHandler(this);
-        mServerSocketThread = new Thread(new ServerThread());
-        mServerSocketThread.start();
+        mJWEHandler = new JWEHandler(this);
+        keyStoreAlias = getString(R.string.android_key_store_alias);
+        mCaPreference = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
     }
 
     @Override
@@ -71,6 +82,9 @@ public class NSDActivity extends AppCompatActivity {
 //            Log.e(TAG,"JWE Exception",e);
 //        }
 
+
+        Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
+        buttonEnrollDevices.setVisibility(View.INVISIBLE);
         super.onStart();
     }
     @Override
@@ -86,7 +100,7 @@ public class NSDActivity extends AppCompatActivity {
         if(mNsdManager != null){
             try {
                 mServerSocketThread.interrupt();
-                mServerSocket.close();//TODO
+                mServerSocket.close();//TODO (forgot what I was TODO)
             } catch (IOException e) {
                 Log.e(TAG,"ServerSocket.close",e);
             }
@@ -95,36 +109,29 @@ public class NSDActivity extends AppCompatActivity {
 
     }
 
-    private void generateJWE() throws NoSuchAlgorithmException, JOSEException {
-        // Generate symmetric 128 bit AES key
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-        keyGen.init(128);
-        SecretKey key = keyGen.generateKey();
-        JWEHeader header = new JWEHeader(JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
-
-        // Set the plain text
-        Payload payload = new Payload("Hello world!");
-
-        // Create the JWE object and encrypt it
-        JWEObject jweObject = new JWEObject(header, payload);
-        jweObject.encrypt(new DirectEncrypter(key));
-
-        String jweString = jweObject.serialize();
-        Log.v(TAG,"JWE Token: " + jweString);
+    private void sendTokenEmail(String secret){
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("message/rfc822");
+        i.putExtra(Intent.EXTRA_EMAIL  , new String[]{"jack.lightfoot@tee2.org"});
+        i.putExtra(Intent.EXTRA_SUBJECT, "test key");
+        i.putExtra(Intent.EXTRA_TEXT   , secret);
+        try {
+            startActivity(Intent.createChooser(i, "Send mail..."));
+        } catch (android.content.ActivityNotFoundException ex) {
+            Toast.makeText(NSDActivity.this, "There are no email clients installed.", Toast.LENGTH_SHORT).show();
+        }
     }
 
 
-//    public void startService(View view){
-//
-//
-//        try {
-//            registerService(mLocalPort);
-//            socketCreated = true;
-//        } catch (IOException e) {
-//            Log.e(TAG,"Server Socket issue",e);
-//            socketCreated = false;
-//        }
-//    }
+    public void createSecret(View view){
+        mJWECreateThread = new Thread(new JWEThread());
+        mJWECreateThread.start();
+    }
+
+    public void startService(View view){
+        mServerSocketThread = new Thread(new ServerThread());
+        mServerSocketThread.start();
+    }
 
     public void startService(){
         Log.v(TAG,"startService with port: " + mLocalPort);
@@ -183,6 +190,15 @@ public class NSDActivity extends AppCompatActivity {
             }
         };
     }
+
+    public void showEnrollmentOptions(String secretKey){
+        Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
+        buttonEnrollDevices.setVisibility(View.VISIBLE);
+        TextView secretText = findViewById(R.id.textViewSecret);
+        sendTokenEmail(secretKey);
+        secretText.setText(secretKey);
+    }
+
     class ServerThread implements Runnable {
 
         public void run() {
@@ -215,6 +231,39 @@ public class NSDActivity extends AppCompatActivity {
         }
     }
 
+
+    class JWEThread implements Runnable {
+
+        public void run() {
+            // Generate symmetric 128 bit AES key
+            KeyGenerator keyGen = null;
+            try {
+                keyGen = KeyGenerator.getInstance("AES");
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+            keyGen.init(128);
+            SecretKey key = keyGen.generateKey();
+            JWEHeader header = new JWEHeader(JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
+
+            // Set the plain text
+            Payload payload = new Payload("Hello world!");
+
+            // Create the JWE object and encrypt it
+            JWEObject jweObject = new JWEObject(header, payload);
+            try {
+                jweObject.encrypt(new DirectEncrypter(key));
+            } catch (JOSEException e) {
+                e.printStackTrace();
+            }
+            key.toString();
+            String jweString = jweObject.serialize();
+            Log.v(TAG,"JWE Token: " + jweString);
+            Message jweMessage = mJWEHandler.obtainMessage(JWE_SECRET_CREATED, new JWESecretMessageObject(Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP)));
+            mJWEHandler.sendMessage(jweMessage);
+        }
+    }
+
     class CommunicationThread implements Runnable {
 
         private Socket clientSocket;
@@ -243,12 +292,27 @@ public class NSDActivity extends AppCompatActivity {
 
                     String read = input.readLine();
                     Log.v(TAG,"CommunicationThread.run readline");
+                    Log.v(TAG,"incomming: " + read);
 //                    serverStartHandler.post(new updateUIThread(read));
+                    return;
 
                 } catch (IOException e) {
                     Log.e(TAG,"CommunicationThread: IOException readline",e);
                 }
             }
+        }
+
+    }
+
+    private static class JWESecretMessageObject {
+        private String secret;
+
+        public JWESecretMessageObject(String secret){
+            this.secret = secret;
+        }
+
+        public String getSecret(){
+            return this.secret;
         }
 
     }
@@ -270,6 +334,27 @@ public class NSDActivity extends AppCompatActivity {
                         activity.startService();
                     }
                 }
+        }
+    }
+
+    private static class JWEHandler extends Handler {
+        private final WeakReference<NSDActivity> mActivity;
+
+        public JWEHandler(NSDActivity activity){
+            mActivity = new WeakReference<NSDActivity>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            NSDActivity activity = mActivity.get();
+            Log.v(TAG,"JWEHandler.handleMessage");
+            if(activity != null){
+                if (msg.what == JWE_SECRET_CREATED){
+                    JWESecretMessageObject secretOb = (JWESecretMessageObject) msg.obj;
+                    Log.v(TAG,"JWEHandler: JWE_SECRET_CREATED");
+                    activity.showEnrollmentOptions(secretOb.getSecret());
+                }
+            }
         }
     }
 

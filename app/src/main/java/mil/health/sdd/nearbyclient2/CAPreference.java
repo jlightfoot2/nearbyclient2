@@ -109,6 +109,20 @@ public class CAPreference {
         return !(caPrivateKeyPref.isEmpty() || caPublicKeyPref.isEmpty() || caCertificatePref.isEmpty());
     }
 
+    public void setTempSecret(byte[] secretKey){
+
+        sharedPreferences.edit().putString(context.getString(R.string.ca_secret_key_name), Base64.encodeToString(secretKey, BASE64_CONF));
+
+    }
+
+    /**
+     *
+     * @param secretKey
+     * @return base64 encoded string
+     */
+    public String getTempSecret(byte[] secretKey){
+        return sharedPreferences.getString(context.getString(R.string.ca_secret_key_name),"");
+    }
 
     //TODO remove and put in a unit or component test.
     public void testEncDec(){

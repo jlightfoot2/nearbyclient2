@@ -17,4 +17,5 @@
     <string name="button_view_csr_files">View Signing Request Files</string>
     <string name="button_view_signed_certificate_files">View Signed Certificate Files</string>
     <string name="button_start_nsd_register">Register Network Service</string>
+    <string name="ca_secret_key_name">ca_secret_key</string>
 </resources>

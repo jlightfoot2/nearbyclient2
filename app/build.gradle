@@ -31,4 +31,6 @@ dependencies {
     implementation group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.59'
     // https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt
     implementation group: 'com.nimbusds', name: 'nimbus-jose-jwt', version: '5.14'
+    implementation group: 'com.goterl.lazycode', name: 'lazysodium-java', version: '2.5.0', ext: 'pom'
+    implementation "net.java.dev.jna:jna:4.5.2@aar"
 }
