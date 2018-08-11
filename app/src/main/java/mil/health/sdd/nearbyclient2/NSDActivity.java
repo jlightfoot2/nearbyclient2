@@ -21,11 +21,12 @@ import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.Payload;
-import com.nimbusds.jose.crypto.DirectEncrypter;
+import com.nimbusds.jose.crypto.AESEncrypter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -40,7 +41,7 @@ import javax.crypto.SecretKey;
  */
 public class NSDActivity extends AppCompatActivity {
 
-    private static final String TAG = "AppCompatActivity";
+    private static final String TAG = "NSDActivity";
     NsdManager.RegistrationListener mRegistrationListener;
     ServerSocket mServerSocket;
     int mLocalPort;
@@ -124,7 +125,7 @@ public class NSDActivity extends AppCompatActivity {
 
 
     public void createSecret(View view){
-        mJWECreateThread = new Thread(new JWEThread());
+        mJWECreateThread = new Thread(new JWEKeyWrapThread());
         mJWECreateThread.start();
     }
 
@@ -230,12 +231,19 @@ public class NSDActivity extends AppCompatActivity {
             }
         }
     }
-
-
-    class JWEThread implements Runnable {
+    class JWEKeyWrapThread implements Runnable {
 
         public void run() {
             // Generate symmetric 128 bit AES key
+            Payload payload = new Payload("Hello world KW!");
+            JWEAlgorithm alg = JWEAlgorithm.A128KW;
+            EncryptionMethod encryptionMethod = EncryptionMethod.A128GCM;
+
+
+            JWEObject jwe = new JWEObject(
+                    new JWEHeader(alg, encryptionMethod),
+                    payload);
+
             KeyGenerator keyGen = null;
             try {
                 keyGen = KeyGenerator.getInstance("AES");
@@ -243,26 +251,69 @@ public class NSDActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             keyGen.init(128);
+
             SecretKey key = keyGen.generateKey();
-            JWEHeader header = new JWEHeader(JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
 
-            // Set the plain text
-            Payload payload = new Payload("Hello world!");
-
-            // Create the JWE object and encrypt it
-            JWEObject jweObject = new JWEObject(header, payload);
             try {
-                jweObject.encrypt(new DirectEncrypter(key));
+                jwe.encrypt(new AESEncrypter(key));
             } catch (JOSEException e) {
                 e.printStackTrace();
             }
-            key.toString();
-            String jweString = jweObject.serialize();
+
+            String jweString = jwe.serialize();
+            String keyString = null;
+            try {
+                keyString = new String(key.getEncoded(),"UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                Log.e(TAG,"UnsupportedEncodingException",e);
+            }
+            Log.v(TAG,"JWE secret base64: " + Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP));
+            Log.v(TAG,"JWE secret string: " + keyString);
             Log.v(TAG,"JWE Token: " + jweString);
             Message jweMessage = mJWEHandler.obtainMessage(JWE_SECRET_CREATED, new JWESecretMessageObject(Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP)));
             mJWEHandler.sendMessage(jweMessage);
         }
     }
+
+//    class JWEThread implements Runnable {
+//
+//        public void run() {
+//            // Generate symmetric 128 bit AES key
+//            KeyGenerator keyGen = null;
+//            try {
+//                keyGen = KeyGenerator.getInstance("AES");
+//            } catch (NoSuchAlgorithmException e) {
+//                e.printStackTrace();
+//            }
+//            keyGen.init(128);
+//            SecretKey key = keyGen.generateKey();
+//            JWEHeader header = new JWEHeader(JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
+//
+//            // Set the plain text
+//            Payload payload = new Payload("Hello world!");
+//
+//            // Create the JWE object and encrypt it
+//            JWEObject jweObject = new JWEObject(header, payload);
+//            try {
+//                jweObject.encrypt(new DirectEncrypter(key));
+//            } catch (JOSEException e) {
+//                e.printStackTrace();
+//            }
+//
+//            String jweString = jweObject.serialize();
+//            String keyString = null;
+//            try {
+//                keyString = new String(key.getEncoded(),"UTF-8");
+//            } catch (UnsupportedEncodingException e) {
+//                Log.e(TAG,"UnsupportedEncodingException",e);
+//            }
+//            Log.v(TAG,"JWE secret base64: " + Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP));
+//            Log.v(TAG,"JWE secret string: " + keyString);
+//            Log.v(TAG,"JWE Token: " + jweString);
+//            Message jweMessage = mJWEHandler.obtainMessage(JWE_SECRET_CREATED, new JWESecretMessageObject(Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP)));
+//            mJWEHandler.sendMessage(jweMessage);
+//        }
+//    }
 
     class CommunicationThread implements Runnable {
 

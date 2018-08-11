@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -29,7 +30,11 @@
         <activity android:name=".PKIActivity" />
         <activity android:name=".CSRFilesActivity" />
         <activity android:name=".CertFilesActivity" />
-        <activity android:name=".NSDActivity"></activity>
+        <activity android:name=".NSDActivity" />
+        <activity
+            android:name=".CodeScanActivity"
+            android:label="@string/title_activity_code_scan"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

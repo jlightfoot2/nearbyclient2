@@ -69,6 +69,12 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void scanCode(View view) {
+        Intent intent = new Intent(this, CodeScanActivity.class);
+        startActivity(intent);
+    }
+
+
     public void deleteCertificates(View view) {
         CAPreference caPreferences = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
         caPreferences.deleteAll();
