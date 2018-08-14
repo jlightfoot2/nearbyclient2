@@ -31,4 +31,6 @@ dependencies {
     implementation group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.59'
     // https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt
     implementation group: 'com.nimbusds', name: 'nimbus-jose-jwt', version: '5.14'
+    //this lib is deprecated but the new one (Ml kit)isn't building
+    implementation 'com.google.android.gms:play-services:12.0.1'
 }

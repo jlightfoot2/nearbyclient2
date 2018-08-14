@@ -196,8 +196,9 @@ public class NSDActivity extends AppCompatActivity {
         Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
         buttonEnrollDevices.setVisibility(View.VISIBLE);
         TextView secretText = findViewById(R.id.textViewSecret);
-        sendTokenEmail(secretKey);
-        secretText.setText(secretKey);
+
+//        secretText.setText(secretKey);
+        secretText.setText("Advertising on PORT: " + mLocalPort);
     }
 
     class ServerThread implements Runnable {
@@ -208,6 +209,7 @@ public class NSDActivity extends AppCompatActivity {
             try {
                 mServerSocket = new ServerSocket(0);
                 mLocalPort = mServerSocket.getLocalPort();
+                Log.v("ServerThread","Advertising on Port: " + mLocalPort);
                 mServerHandler.sendEmptyMessage(SERVER_SOCKET_STARTED);
             } catch (IOException e) {
                 Log.e(TAG,"ServerThread Exception",e);
@@ -379,10 +381,12 @@ public class NSDActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
                 NSDActivity activity = mActivity.get();
                 Log.v(TAG,"ServerSocketHandler.handleMessage");
+                TextView secretText = activity.findViewById(R.id.textViewSecret);
                 if(activity != null){
                     if (msg.what == SERVER_SOCKET_STARTED){
                         Log.v(TAG,"ServerSocketHandler: SERVER_SOCKET_STARTED");
                         activity.startService();
+                        secretText.setText("Advertising on PORT: " + activity.mLocalPort);
                     }
                 }
         }
