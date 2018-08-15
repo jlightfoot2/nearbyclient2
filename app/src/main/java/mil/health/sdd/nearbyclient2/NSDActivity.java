@@ -11,29 +11,21 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.nimbusds.jose.EncryptionMethod;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWEAlgorithm;
-import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.Payload;
-import com.nimbusds.jose.crypto.AESEncrypter;
+import com.nimbusds.jose.crypto.AESDecrypter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Advertises a CA x508 signing service via NSD which clients can discover in order to submit CSRs
@@ -48,45 +40,44 @@ public class NSDActivity extends AppCompatActivity {
     String mServiceName;
     boolean socketCreated = false;
     NsdManager mNsdManager;
-    Thread serverThread = null;
+
     private ServerSocketHandler mServerHandler;
     private JWEHandler mJWEHandler;
     private Thread mServerSocketThread;
-    private Thread mJWECreateThread;
+
     private static final int SERVER_SOCKET_STARTED = 1;
     private static final int SERVER_CLIENT_ACCEPTED = 2;
     private static final int JWE_SECRET_CREATED = 3;
     private static final int JWE_TOKEN_RECEIVED = 4;
-    private CAPreference mCaPreference;
-    private String keyStoreAlias;
+
+    public String mSharedKey;
+    public String mClientToken;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nsd);
+        Intent intent = getIntent();
+        mSharedKey = intent.getStringExtra(CodeScanActivity.EXTRA_MESSAGE);
+        TextView secretText = findViewById(R.id.textViewSecret);
+
+        secretText.setText("Key: " + mSharedKey);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         Log.v(TAG,"onResume");
         mServerHandler = new ServerSocketHandler(this);
         mJWEHandler = new JWEHandler(this);
-        keyStoreAlias = getString(R.string.android_key_store_alias);
-        mCaPreference = new CAPreference(this,getString(R.string.preference_pki_filename),keyStoreAlias);
     }
 
     @Override
     protected void onStart() {
 
-//        try {
-//            this.generateJWE();
-//        } catch (Exception e) {
-//            Log.e(TAG,"JWE Exception",e);
-//        }
+//        Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
 
-
-        Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
-        buttonEnrollDevices.setVisibility(View.INVISIBLE);
         super.onStart();
     }
     @Override
@@ -112,24 +103,10 @@ public class NSDActivity extends AppCompatActivity {
 
     }
 
-    private void sendTokenEmail(String secret){
-        Intent i = new Intent(Intent.ACTION_SEND);
-        i.setType("message/rfc822");
-        i.putExtra(Intent.EXTRA_EMAIL  , new String[]{"jack.lightfoot@tee2.org"});
-        i.putExtra(Intent.EXTRA_SUBJECT, "test key");
-        i.putExtra(Intent.EXTRA_TEXT   , secret);
-        try {
-            startActivity(Intent.createChooser(i, "Send mail..."));
-        } catch (android.content.ActivityNotFoundException ex) {
-            Toast.makeText(NSDActivity.this, "There are no email clients installed.", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-
-    public void createSecret(View view){
-        mJWECreateThread = new Thread(new JWEKeyWrapThread());
-        mJWECreateThread.start();
-    }
+//    public void createSecret(View view){
+//        mJWECreateThread = new Thread(new JWEKeyWrapThread());
+//        mJWECreateThread.start();
+//    }
 
     public void startService(View view){
         mServerSocketThread = new Thread(new ServerThread());
@@ -194,12 +171,9 @@ public class NSDActivity extends AppCompatActivity {
         };
     }
 
-    public void showEnrollmentOptions(String secretKey){
-        Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
-        buttonEnrollDevices.setVisibility(View.VISIBLE);
+    public void showEnrollmentOptions(){
         TextView secretText = findViewById(R.id.textViewSecret);
 
-//        secretText.setText(secretKey);
         secretText.setText("Port OR Token: " + mLocalPort);
     }
 
@@ -235,54 +209,20 @@ public class NSDActivity extends AppCompatActivity {
             }
         }
     }
-    class JWEKeyWrapThread implements Runnable {
 
-        public void run() {
-            // Generate symmetric 128 bit AES key
-            Payload payload = new Payload("Hello world KW!");
-            JWEAlgorithm alg = JWEAlgorithm.A128KW;
-            EncryptionMethod encryptionMethod = EncryptionMethod.A128GCM;
-
-
-            JWEObject jwe = new JWEObject(
-                    new JWEHeader(alg, encryptionMethod),
-                    payload);
-
-            KeyGenerator keyGen = null;
-            try {
-                keyGen = KeyGenerator.getInstance("AES");
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-            keyGen.init(128);
-
-            SecretKey key = keyGen.generateKey();
-
-            try {
-                jwe.encrypt(new AESEncrypter(key));
-            } catch (JOSEException e) {
-                e.printStackTrace();
-            }
-
-            String jweString = jwe.serialize();
-            String keyString = null;
-            try {
-                keyString = new String(key.getEncoded(),"UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                Log.e(TAG,"UnsupportedEncodingException",e);
-            }
-            Log.v(TAG,"JWE secret base64: " + Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP));
-            Log.v(TAG,"JWE secret string: " + keyString);
-            Log.v(TAG,"JWE Token: " + jweString);
-            Message jweMessage = mJWEHandler.obtainMessage(JWE_SECRET_CREATED, new JWESecretMessageObject(Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP)));
-            mJWEHandler.sendMessage(jweMessage);
-        }
-    }
-
-//    class JWEThread implements Runnable {
+//    class JWEKeyWrapThread implements Runnable {
 //
 //        public void run() {
 //            // Generate symmetric 128 bit AES key
+//            Payload payload = new Payload("Hello world KW!");
+//            JWEAlgorithm alg = JWEAlgorithm.A128KW;
+//            EncryptionMethod encryptionMethod = EncryptionMethod.A128GCM;
+//
+//
+//            JWEObject jwe = new JWEObject(
+//                    new JWEHeader(alg, encryptionMethod),
+//                    payload);
+//
 //            KeyGenerator keyGen = null;
 //            try {
 //                keyGen = KeyGenerator.getInstance("AES");
@@ -290,21 +230,16 @@ public class NSDActivity extends AppCompatActivity {
 //                e.printStackTrace();
 //            }
 //            keyGen.init(128);
+//
 //            SecretKey key = keyGen.generateKey();
-//            JWEHeader header = new JWEHeader(JWEAlgorithm.DIR, EncryptionMethod.A128GCM);
 //
-//            // Set the plain text
-//            Payload payload = new Payload("Hello world!");
-//
-//            // Create the JWE object and encrypt it
-//            JWEObject jweObject = new JWEObject(header, payload);
 //            try {
-//                jweObject.encrypt(new DirectEncrypter(key));
+//                jwe.encrypt(new AESEncrypter(key));
 //            } catch (JOSEException e) {
 //                e.printStackTrace();
 //            }
 //
-//            String jweString = jweObject.serialize();
+//            String jweString = jwe.serialize();
 //            String keyString = null;
 //            try {
 //                keyString = new String(key.getEncoded(),"UTF-8");
@@ -427,15 +362,41 @@ public class NSDActivity extends AppCompatActivity {
                 if (msg.what == JWE_SECRET_CREATED){
                     JWESecretMessageObject secretOb = (JWESecretMessageObject) msg.obj;
                     Log.v(TAG,"JWEHandler: JWE_SECRET_CREATED");
-                    activity.showEnrollmentOptions(secretOb.getSecret());
                 } else if(msg.what == JWE_TOKEN_RECEIVED){
                     JWETokenMessageObject secretOb = (JWETokenMessageObject) msg.obj;
                     Log.v(TAG,"JWEHandler: JWE_TOKEN_RECEIVED");
-                    activity.showEnrollmentOptions(secretOb.getToken());
+                    activity.mClientToken = secretOb.getToken();
                     activity.tearDownNSD();
+                    activity.decryptToken();
                 }
             }
         }
+    }
+
+
+    public void decryptToken() {
+        JWEObject jweObject = null;
+        Log.v(TAG,"TOKEN: " + mClientToken);
+        Log.v(TAG,"SHARED_KEY: " + mSharedKey);
+//        Log.v(TAG,"KEY_LENGTH: " + mSharedKey);
+        try {
+            byte[] decodedKey = Base64.decode(mSharedKey,Base64.DEFAULT);
+            Log.v(TAG,"KEY_LENGTH: " + decodedKey.length);
+            SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+            jweObject = JWEObject.parse(mClientToken);
+            jweObject.decrypt(new AESDecrypter(key));
+        } catch (Exception e) {
+            Log.e(TAG,"Token Decrypt Exception: ",e);
+        }
+
+        Payload payload = jweObject.getPayload();
+        String payString = payload.toString();
+        Log.v(TAG,"PAYLOAD: " + payString);
+        TextView secretText = findViewById(R.id.textViewSecret);
+
+        secretText.setText("DEC Client Payload: " + payString);
+        mClientToken = "";
+        mSharedKey = "";
     }
 
 

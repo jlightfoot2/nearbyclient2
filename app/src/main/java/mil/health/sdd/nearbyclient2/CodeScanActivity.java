@@ -12,6 +12,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,12 +22,14 @@ import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 public class CodeScanActivity extends AppCompatActivity {
 //    private FirebaseVisionBarcodeDetectorOptions mFireBaseOptions;
-
+    public static final String EXTRA_MESSAGE = "mil.health.sdd.nearbyclient2.KEY";
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final String TAG = "CodeScanActivity";
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private ImageView mBarcodeImageView;
     private TextView mTextViewBarcodeValue;
+    private Button mConnectButton;
+    private String sharedKey;
     BarcodeDetector mBarcodeDetector;
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -57,6 +60,8 @@ public class CodeScanActivity extends AppCompatActivity {
         super.onResume();
         mBarcodeImageView = findViewById(R.id.imageViewBarcodePhoto);
         mTextViewBarcodeValue = findViewById(R.id.textViewBarcode);
+        mConnectButton = findViewById(R.id.buttonConnectToClient);
+//        mConnectButton.setVisibility(View.INVISIBLE);
         mBarcodeDetector =
                 new BarcodeDetector.Builder(getApplicationContext())
                         .setBarcodeFormats(Barcode.DATA_MATRIX | Barcode.QR_CODE)
@@ -69,11 +74,6 @@ public class CodeScanActivity extends AppCompatActivity {
             Log.v(TAG,"Success: Barcode Scanner IS operational");
         }
 
-//        mFireBaseOptions =
-//                new FirebaseVisionBarcodeDetectorOptions.Builder()
-//                        .setBarcodeFormats(
-//                                FirebaseVisionBarcode.FORMAT_QR_CODE)
-//                        .build();
 
     }
 
@@ -143,6 +143,8 @@ public class CodeScanActivity extends AppCompatActivity {
             if(barcodes.size() > 0){
                 Barcode thisCode = barcodes.valueAt(0);
                 mTextViewBarcodeValue.setText(thisCode.rawValue);
+                sharedKey = thisCode.rawValue;
+                mConnectButton.setVisibility(View.VISIBLE);
             } else {
                 mTextViewBarcodeValue.setText("No Code Detected");
             }
@@ -150,6 +152,13 @@ public class CodeScanActivity extends AppCompatActivity {
         } else {
             Log.v(TAG,"onActivityResult: could not take photo");
         }
+    }
+
+    public void connectClient(View view){
+        Intent intent = new Intent(this, NSDActivity.class);
+
+        intent.putExtra(EXTRA_MESSAGE, sharedKey);
+        startActivity(intent);
     }
 
 }
