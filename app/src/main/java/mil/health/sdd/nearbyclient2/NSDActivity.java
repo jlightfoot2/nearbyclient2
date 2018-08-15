@@ -56,6 +56,7 @@ public class NSDActivity extends AppCompatActivity {
     private static final int SERVER_SOCKET_STARTED = 1;
     private static final int SERVER_CLIENT_ACCEPTED = 2;
     private static final int JWE_SECRET_CREATED = 3;
+    private static final int JWE_TOKEN_RECEIVED = 4;
     private CAPreference mCaPreference;
     private String keyStoreAlias;
     @Override
@@ -97,15 +98,16 @@ public class NSDActivity extends AppCompatActivity {
 
 
 
-    private void tearDownNSD(){
+    public void tearDownNSD(){
         if(mNsdManager != null){
             try {
-                mServerSocketThread.interrupt();
                 mServerSocket.close();//TODO (forgot what I was TODO)
+                mServerSocketThread.interrupt();
             } catch (IOException e) {
                 Log.e(TAG,"ServerSocket.close",e);
             }
             mNsdManager.unregisterService(mRegistrationListener);
+            mNsdManager = null;
         }
 
     }
@@ -198,7 +200,7 @@ public class NSDActivity extends AppCompatActivity {
         TextView secretText = findViewById(R.id.textViewSecret);
 
 //        secretText.setText(secretKey);
-        secretText.setText("Advertising on PORT: " + mLocalPort);
+        secretText.setText("Port OR Token: " + mLocalPort);
     }
 
     class ServerThread implements Runnable {
@@ -328,7 +330,7 @@ public class NSDActivity extends AppCompatActivity {
             this.clientSocket = clientSocket;
 
             try {
-
+                //Closing the returned InputStream will close the associated socket.
                 this.input = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
 
             } catch (IOException e) {
@@ -338,17 +340,22 @@ public class NSDActivity extends AppCompatActivity {
         }
 
         public void run() {
-
+            String encToken = "";
             while (!Thread.currentThread().isInterrupted()) {
 
                 try {
 
-                    String read = input.readLine();
+                    int value = 0;
+                    while((value = input.read()) != -1){
+                        encToken += (char)value;
+                    }
+                    Log.v(TAG,"Finished reading socket");
                     Log.v(TAG,"CommunicationThread.run readline");
-                    Log.v(TAG,"incomming: " + read);
-//                    serverStartHandler.post(new updateUIThread(read));
+                    Log.v(TAG,"token from client: " + encToken);
+                    Message jweMessage = mJWEHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessageObject(encToken));
+                    mJWEHandler.sendMessage(jweMessage);
+                    this.input.close(); //TODO will this cause socket to close?
                     return;
-
                 } catch (IOException e) {
                     Log.e(TAG,"CommunicationThread: IOException readline",e);
                 }
@@ -366,6 +373,19 @@ public class NSDActivity extends AppCompatActivity {
 
         public String getSecret(){
             return this.secret;
+        }
+
+    }
+
+    private static class JWETokenMessageObject {
+        private String token;
+
+        public JWETokenMessageObject(String token){
+            this.token = token;
+        }
+
+        public String getToken(){
+            return this.token;
         }
 
     }
@@ -408,6 +428,11 @@ public class NSDActivity extends AppCompatActivity {
                     JWESecretMessageObject secretOb = (JWESecretMessageObject) msg.obj;
                     Log.v(TAG,"JWEHandler: JWE_SECRET_CREATED");
                     activity.showEnrollmentOptions(secretOb.getSecret());
+                } else if(msg.what == JWE_TOKEN_RECEIVED){
+                    JWETokenMessageObject secretOb = (JWETokenMessageObject) msg.obj;
+                    Log.v(TAG,"JWEHandler: JWE_TOKEN_RECEIVED");
+                    activity.showEnrollmentOptions(secretOb.getToken());
+                    activity.tearDownNSD();
                 }
             }
         }
