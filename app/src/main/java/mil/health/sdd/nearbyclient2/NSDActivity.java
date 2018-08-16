@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.nimbusds.jose.JWEObject;
@@ -60,8 +61,10 @@ public class NSDActivity extends AppCompatActivity {
         Intent intent = getIntent();
         mSharedKey = intent.getStringExtra(CodeScanActivity.EXTRA_MESSAGE);
         TextView secretText = findViewById(R.id.textViewSecret);
-
+        Button mScanButton = findViewById(R.id.buttonGoToScan);
+        mScanButton.setVisibility(View.INVISIBLE);
         secretText.setText("Key: " + mSharedKey);
+
     }
 
     @Override
@@ -71,6 +74,8 @@ public class NSDActivity extends AppCompatActivity {
         Log.v(TAG,"onResume");
         mServerHandler = new ServerSocketHandler(this);
         mJWEHandler = new JWEHandler(this);
+        mServerSocketThread = new Thread(new ServerThread());
+        mServerSocketThread.start();
     }
 
     @Override
@@ -347,6 +352,11 @@ public class NSDActivity extends AppCompatActivity {
         }
     }
 
+    public void startScan(View view){
+        Intent intent = new Intent(this,CodeScanActivity.class);
+        startActivity(intent);
+    }
+
     private static class JWEHandler extends Handler {
         private final WeakReference<NSDActivity> mActivity;
 
@@ -379,18 +389,27 @@ public class NSDActivity extends AppCompatActivity {
         Log.v(TAG,"TOKEN: " + mClientToken);
         Log.v(TAG,"SHARED_KEY: " + mSharedKey);
 //        Log.v(TAG,"KEY_LENGTH: " + mSharedKey);
+        Payload payload = null;
         try {
             byte[] decodedKey = Base64.decode(mSharedKey,Base64.DEFAULT);
             Log.v(TAG,"KEY_LENGTH: " + decodedKey.length);
             SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
             jweObject = JWEObject.parse(mClientToken);
             jweObject.decrypt(new AESDecrypter(key));
+            payload = jweObject.getPayload();
         } catch (Exception e) {
             Log.e(TAG,"Token Decrypt Exception: ",e);
         }
 
-        Payload payload = jweObject.getPayload();
-        String payString = payload.toString();
+
+        String payString = "";
+        if(payload != null){
+            payString = payload.toString();
+        } else {
+            payString = "Operation failed try again";
+            Button mScanButton = findViewById(R.id.buttonGoToScan);
+            mScanButton.setVisibility(View.VISIBLE);
+        }
         Log.v(TAG,"PAYLOAD: " + payString);
         TextView secretText = findViewById(R.id.textViewSecret);
 

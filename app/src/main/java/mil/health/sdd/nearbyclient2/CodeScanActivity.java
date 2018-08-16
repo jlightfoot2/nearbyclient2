@@ -29,7 +29,7 @@ public class CodeScanActivity extends AppCompatActivity {
     private ImageView mBarcodeImageView;
     private TextView mTextViewBarcodeValue;
     private Button mConnectButton;
-    private String sharedKey;
+    private String mSharedKey;
     BarcodeDetector mBarcodeDetector;
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -143,7 +143,8 @@ public class CodeScanActivity extends AppCompatActivity {
             if(barcodes.size() > 0){
                 Barcode thisCode = barcodes.valueAt(0);
                 mTextViewBarcodeValue.setText(thisCode.rawValue);
-                sharedKey = thisCode.rawValue;
+                mSharedKey = thisCode.rawValue;
+                sendConnectClientIntent();
                 mConnectButton.setVisibility(View.VISIBLE);
             } else {
                 mTextViewBarcodeValue.setText("No Code Detected");
@@ -155,9 +156,13 @@ public class CodeScanActivity extends AppCompatActivity {
     }
 
     public void connectClient(View view){
+        sendConnectClientIntent();
+    }
+
+    public void sendConnectClientIntent(){
         Intent intent = new Intent(this, NSDActivity.class);
 
-        intent.putExtra(EXTRA_MESSAGE, sharedKey);
+        intent.putExtra(EXTRA_MESSAGE, mSharedKey);
         startActivity(intent);
     }
 
