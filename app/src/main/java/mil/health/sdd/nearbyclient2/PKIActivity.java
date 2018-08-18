@@ -35,7 +35,7 @@ import javax.crypto.NoSuchPaddingException;
 
 
 
-public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaCertificateListenter, CaCertEditFragment.EditCaCertListener {
+public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaCertificateListener, CaCertEditFragment.EditCaCertListener {
     private static final String TAG = "PKIActivity";
     public String keyStoreAlias;
     public static final String CA_CN ="android-dha-ca.local";

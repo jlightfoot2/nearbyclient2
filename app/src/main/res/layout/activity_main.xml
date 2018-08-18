@@ -64,4 +64,15 @@
         android:text="Scan Code"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/buttonClearCACerts" />
+
+    <Button
+        android:id="@+id/buttonTestThing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:onClick="testSomething"
+        android:text="Button Test"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/buttonScanCodeStart" />
 </android.support.constraint.ConstraintLayout>

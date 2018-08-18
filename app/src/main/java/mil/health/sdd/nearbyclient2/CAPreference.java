@@ -2,6 +2,8 @@ package mil.health.sdd.nearbyclient2;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Message;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -17,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -76,6 +79,9 @@ public class CAPreference {
     public byte[] caPublicKeyBytes;
     public byte[] caCertificateBytes;
 
+
+    private static final int SERVER_CLIENT_ACCEPTED = 2;
+
     private static final int CIPHER_BLOCK_SIZE_BITS = 128;
     private static final String CIPHER_SECRET_KEY_ALG = KeyProperties.KEY_ALGORITHM_AES;
     private static final String CIPHER_TRANSFORMATION = CIPHER_SECRET_KEY_ALG + "/GCM/NoPadding";
@@ -85,14 +91,33 @@ public class CAPreference {
     private static final int CIPHER_INIT_VECTOR_OFFSET_BYTES = 16 - CIPHER_INIT_VECTOR_BYTES;
     private static final int BASE64_CONF = Base64.NO_WRAP;
 //    private KeyPair deviceKeyPair;
-    public CAPreference(Context context,String share_prefs_filename,String androidKeyStoreAlias){
+
+    /**
+     * @deprecated this.retrieveRawCerts() is process intensive and should only be run via init() method
+     * TODO: 8/17/18  this.retrieveRawCerts() from constructor.
+     *
+     * @param context
+     * @param share_prefs_filename
+     * @param androidKeyStoreAlias
+     * @param autoInit
+     */
+    public CAPreference(Context context,String share_prefs_filename,String androidKeyStoreAlias, boolean autoInit){
         this.context = context;
         this.androidKeyStoreAlias = androidKeyStoreAlias;
         sharedPreferences = this.context.getSharedPreferences(share_prefs_filename, Context.MODE_PRIVATE);
 
         Provider bcProvider = new BouncyCastleProvider();
         Security.addProvider(bcProvider);
+        if(autoInit){
+            this.retrieveRawCerts();
+        }
+    }
 
+    public CAPreference(Context context,String share_prefs_filename,String androidKeyStoreAlias){
+        this(context,share_prefs_filename,androidKeyStoreAlias,true);
+    }
+
+    public void init(){
         this.retrieveRawCerts();
     }
 
@@ -340,4 +365,26 @@ public class CAPreference {
         return (X509Certificate) certFactory.generateCertificate(in);
     }
 
+
+    public static class PreferenceLoadHandler extends Handler{
+        public static final int CA_INIT_COMPLETE = 1;
+        private final WeakReference<CaPreferenceLoadListener> mCaListener;
+        public PreferenceLoadHandler(CaPreferenceLoadListener CAPreference){
+            mCaListener = new WeakReference<CaPreferenceLoadListener>(CAPreference);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            CaPreferenceLoadListener pref = (CaPreferenceLoadListener) mCaListener.get();
+            CAPreference caPref = (CAPreference) msg.obj;
+            Log.v(TAG,"JWEHandler.handleMessage");
+            if(msg.what == CA_INIT_COMPLETE){
+                pref.onCaPreferenceLoaded(caPref);
+            }
+        }
+    }
+
+    public static interface CaPreferenceLoadListener{
+        void onCaPreferenceLoaded(CAPreference pref);
+    }
 }

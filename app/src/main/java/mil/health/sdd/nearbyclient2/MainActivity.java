@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -47,6 +49,14 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, AdvertiseCAActivity.class);
         intent.putExtra(EXTRA_ADVERTISE_MESSAGE, EXTRA_ADVERTISE_MESSAGE_STRING);
         startActivity(intent);
+    }
+
+    public void testSomething(View view){
+        String testString = "zVaywe8OHn2g-ARVp2NC-g";
+        byte[] decodedKey = Base64.decode(testString,Base64.URL_SAFE);
+        Log.v(TAG,"DFSDF: Base64.URL_SAFE" );
+        Log.v(TAG,"KEY: " + testString);
+        Log.v(TAG,"KEY_LENGTH: " + decodedKey.length);
     }
 
     public void setupCertificates(View view) {

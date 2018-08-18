@@ -15,7 +15,7 @@ import android.widget.TextView;
  * A simple {@link Fragment} subclass.
  */
 public class CaCertFragment extends Fragment {
-    CaCertificateListenter mCallback;
+    CaCertificateListener mCallback;
     CertInfo certInfo;
 
     public CaCertFragment() {
@@ -28,7 +28,7 @@ public class CaCertFragment extends Fragment {
         // This makes sure that the container activity has implemented
         // the callback interface. If not, it throws an exception
         try {
-            mCallback = (CaCertificateListenter) context;
+            mCallback = (CaCertificateListener) context;
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString()
                     + " must implement OnHeadlineSelectedListener");
@@ -78,7 +78,7 @@ public class CaCertFragment extends Fragment {
         this.certInfo = certInfo;
     }
 
-    public interface CaCertificateListenter{
+    public interface CaCertificateListener {
         public void onClickDelete();
     }
 

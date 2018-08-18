@@ -35,6 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
 public class NSDActivity extends AppCompatActivity {
 
     private static final String TAG = "NSDActivity";
+    public static final String EXTRA_MESSAGE = "mil.health.sdd.nearbyclient2.CSR";
     NsdManager.RegistrationListener mRegistrationListener;
     ServerSocket mServerSocket;
     int mLocalPort;
@@ -391,31 +392,43 @@ public class NSDActivity extends AppCompatActivity {
 //        Log.v(TAG,"KEY_LENGTH: " + mSharedKey);
         Payload payload = null;
         try {
-            byte[] decodedKey = Base64.decode(mSharedKey,Base64.DEFAULT);
+
+//            byte[] decodedKey = Base64.decode(mSharedKey,Base64.DEFAULT); //was getting invalid key lengths with
+            byte[] decodedKey = Base64.decode(mSharedKey,Base64.URL_SAFE);
             Log.v(TAG,"KEY_LENGTH: " + decodedKey.length);
             SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
             jweObject = JWEObject.parse(mClientToken);
             jweObject.decrypt(new AESDecrypter(key));
             payload = jweObject.getPayload();
+            Log.v(TAG,"PAYLOAD Decrypted!!!!");
         } catch (Exception e) {
             Log.e(TAG,"Token Decrypt Exception: ",e);
         }
-
-
-        String payString = "";
-        if(payload != null){
-            payString = payload.toString();
-        } else {
-            payString = "Operation failed try again";
-            Button mScanButton = findViewById(R.id.buttonGoToScan);
-            mScanButton.setVisibility(View.VISIBLE);
-        }
-        Log.v(TAG,"PAYLOAD: " + payString);
-        TextView secretText = findViewById(R.id.textViewSecret);
-
-        secretText.setText("DEC Client Payload: " + payString);
         mClientToken = "";
         mSharedKey = "";
+
+        String csrRequest = "";
+        if(payload != null){
+            csrRequest = payload.toString();
+            Log.v(TAG,"payload: " + csrRequest);
+            if(csrRequest.length() > 0){
+                Log.v(TAG,"Starting CSRSignActivity");
+                Intent csrSignIntent = new Intent(this,CSRSignActivity.class);
+                csrSignIntent.putExtra(EXTRA_MESSAGE, csrRequest);
+                startActivity(csrSignIntent);
+                return;
+            }
+
+        } else {
+            Button mScanButton = findViewById(R.id.buttonGoToScan);
+            mScanButton.setVisibility(View.VISIBLE);
+            Log.v(TAG,"Payload == null");
+        }
+
+        TextView secretText = findViewById(R.id.textViewSecret);
+
+        secretText.setText("Operation failed try again");
+
     }
 
 
