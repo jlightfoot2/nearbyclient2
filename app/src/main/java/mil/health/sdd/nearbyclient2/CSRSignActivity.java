@@ -21,6 +21,7 @@ public class CSRSignActivity extends AppCompatActivity implements CAPreference.C
 
     public String mKeyStoreAlias;
     public static final String TAG = "CSRSignActivity";
+    public static final String EXTRA_MESSAGE = "mil.health.sdd.nearbyclient2.X509";
     CAPreference mCaPreferences;
     boolean mPrefsReady = false;
     CAPreference.PreferenceLoadHandler mPreferenceHandler;
@@ -49,12 +50,20 @@ public class CSRSignActivity extends AppCompatActivity implements CAPreference.C
         Log.v(TAG,"caPreference isSetup: " + caPreference.isSetup());
         mPrefsReady = caPreference.isSetup();
         Intent intent = getIntent();
-        String csrBase64 = intent.getStringExtra(NSDActivity.EXTRA_MESSAGE);
+        Bundle clientBundle = intent.getBundleExtra(NSDActivity.EXTRA_MESSAGE);
+        String csrBase64 = clientBundle.getString("csr");
+
         Log.v(TAG,"Intent Extra: " + csrBase64);
         try {
             PKCS10CertificationRequest csr = loadCSR(csrBase64);
             X509Certificate signedClientCert = signCSR(csr);
+            clientBundle.putString("cert",Base64.encodeToString(signedClientCert.getEncoded(),Base64.NO_WRAP));
+            Intent responseIntent = new Intent();
+            responseIntent.putExtra(EXTRA_MESSAGE,clientBundle);
+            setResult(RESULT_OK,responseIntent);
             Log.v(TAG,"Certificate Signed Yay");
+            Log.v(TAG,"finish()");
+            finish();
         } catch (Exception e) {
             Log.e(TAG,"load or sign Exception",e);
         }

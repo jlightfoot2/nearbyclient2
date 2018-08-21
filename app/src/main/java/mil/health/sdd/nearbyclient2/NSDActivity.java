@@ -47,6 +47,9 @@ public class NSDActivity extends AppCompatActivity {
     private JWEHandler mJWEHandler;
     private Thread mServerSocketThread;
 
+    private String mCSRequest;
+    private static final int ACTIVITY_CSR_REQUEST = 1;
+
     private static final int SERVER_SOCKET_STARTED = 1;
     private static final int SERVER_CLIENT_ACCEPTED = 2;
     private static final int JWE_SECRET_CREATED = 3;
@@ -65,7 +68,7 @@ public class NSDActivity extends AppCompatActivity {
         Button mScanButton = findViewById(R.id.buttonGoToScan);
         mScanButton.setVisibility(View.INVISIBLE);
         secretText.setText("Key: " + mSharedKey);
-
+        this.startSocketService();
     }
 
     @Override
@@ -73,10 +76,6 @@ public class NSDActivity extends AppCompatActivity {
         super.onResume();
 
         Log.v(TAG,"onResume");
-        mServerHandler = new ServerSocketHandler(this);
-        mJWEHandler = new JWEHandler(this);
-        mServerSocketThread = new Thread(new ServerThread());
-        mServerSocketThread.start();
     }
 
     @Override
@@ -114,12 +113,15 @@ public class NSDActivity extends AppCompatActivity {
 //        mJWECreateThread.start();
 //    }
 
-    public void startService(View view){
+    public void startSocketService(){
+        mServerHandler = new ServerSocketHandler(this);
+        mJWEHandler = new JWEHandler(this);
         mServerSocketThread = new Thread(new ServerThread());
         mServerSocketThread.start();
     }
 
-    public void startService(){
+
+    public void startNSDService(){
         Log.v(TAG,"startService with port: " + mLocalPort);
         registerService(mLocalPort);
         socketCreated = true;
@@ -293,7 +295,9 @@ public class NSDActivity extends AppCompatActivity {
                     Log.v(TAG,"Finished reading socket");
                     Log.v(TAG,"CommunicationThread.run readline");
                     Log.v(TAG,"token from client: " + encToken);
-                    Message jweMessage = mJWEHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessageObject(encToken));
+                    String clientIp = clientSocket.getInetAddress().toString();
+                    int clientPort = clientSocket.getPort();
+                    Message jweMessage = mJWEHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessageObject(encToken,clientIp,clientPort));
                     mJWEHandler.sendMessage(jweMessage);
                     this.input.close(); //TODO will this cause socket to close?
                     return;
@@ -320,15 +324,24 @@ public class NSDActivity extends AppCompatActivity {
 
     private static class JWETokenMessageObject {
         private String token;
+        private String clientIp;
+        private int clientPort;
 
-        public JWETokenMessageObject(String token){
+        public JWETokenMessageObject(String token, String clientIp, int clientPort){
             this.token = token;
+            this.clientIp = clientIp;
+            this.clientPort = clientPort;
         }
 
         public String getToken(){
             return this.token;
         }
-
+        public String getClientIp(){
+            return this.clientIp;
+        }
+        public int getClientPort(){
+            return this.clientPort;
+        }
     }
 
     private static class ServerSocketHandler extends Handler {
@@ -346,7 +359,7 @@ public class NSDActivity extends AppCompatActivity {
                 if(activity != null){
                     if (msg.what == SERVER_SOCKET_STARTED){
                         Log.v(TAG,"ServerSocketHandler: SERVER_SOCKET_STARTED");
-                        activity.startService();
+                        activity.startNSDService();
                         secretText.setText("Advertising on PORT: " + activity.mLocalPort);
                     }
                 }
@@ -378,14 +391,45 @@ public class NSDActivity extends AppCompatActivity {
                     Log.v(TAG,"JWEHandler: JWE_TOKEN_RECEIVED");
                     activity.mClientToken = secretOb.getToken();
                     activity.tearDownNSD();
-                    activity.decryptToken();
+                    activity.handleToken(secretOb);
                 }
             }
         }
     }
 
+    public void handleToken(JWETokenMessageObject secretOb){
+        if(decryptToken()){
+            Log.v(TAG,"Starting CSRSignActivity");
+            Intent csrSignIntent = new Intent(this,CSRSignActivity.class);
 
-    public void decryptToken() {
+//            csrSignIntent.put
+            Bundle clientBundle = new Bundle();
+            clientBundle.putString("csr", mCSRequest);
+            clientBundle.putString("client_ip", secretOb.getClientIp());
+            clientBundle.putInt("client_port", secretOb.getClientPort());
+            clientBundle.putString("shared_key", mSharedKey);
+            csrSignIntent.putExtra(EXTRA_MESSAGE, clientBundle);
+
+            startActivityForResult(csrSignIntent,ACTIVITY_CSR_REQUEST);
+        }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == ACTIVITY_CSR_REQUEST){
+            if(resultCode == RESULT_OK){
+                Log.v(TAG,"SUCCESS: onActivityResult: ACTIVITY_CSR_REQUEST");
+                //TODO extract base64 cert, put in token and return it
+
+                Bundle clientBundle = data.getBundleExtra(CSRSignActivity.EXTRA_MESSAGE);
+                Log.v(TAG, "X509 cert: " + clientBundle.getString("cert"));
+
+            } else {
+                Log.v(TAG,"FAILURE: onActivityResult: ACTIVITY_CSR_REQUEST failed");
+            }
+        }
+    }
+
+    public boolean decryptToken() {
         JWEObject jweObject = null;
         Log.v(TAG,"TOKEN: " + mClientToken);
         Log.v(TAG,"SHARED_KEY: " + mSharedKey);
@@ -408,15 +452,13 @@ public class NSDActivity extends AppCompatActivity {
         mSharedKey = "";
 
         String csrRequest = "";
+        mCSRequest = "";
         if(payload != null){
             csrRequest = payload.toString();
             Log.v(TAG,"payload: " + csrRequest);
             if(csrRequest.length() > 0){
-                Log.v(TAG,"Starting CSRSignActivity");
-                Intent csrSignIntent = new Intent(this,CSRSignActivity.class);
-                csrSignIntent.putExtra(EXTRA_MESSAGE, csrRequest);
-                startActivity(csrSignIntent);
-                return;
+                mCSRequest = csrRequest;
+                return true;
             }
 
         } else {
@@ -429,6 +471,7 @@ public class NSDActivity extends AppCompatActivity {
 
         secretText.setText("Operation failed try again");
 
+        return false;
     }
 
 
