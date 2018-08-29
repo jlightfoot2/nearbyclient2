@@ -14,14 +14,21 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.nimbusds.jose.EncryptionMethod;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWEAlgorithm;
+import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.AESDecrypter;
+import com.nimbusds.jose.crypto.AESEncrypter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -44,15 +51,16 @@ public class NSDActivity extends AppCompatActivity {
     NsdManager mNsdManager;
 
     private ServerSocketHandler mServerHandler;
-    private JWEHandler mJWEHandler;
+    private JWEDecryptHandler mJWEDecryptHandler;
     private Thread mServerSocketThread;
+    private Thread mTokenCreateThread;
 
     private String mCSRequest;
     private static final int ACTIVITY_CSR_REQUEST = 1;
 
     private static final int SERVER_SOCKET_STARTED = 1;
     private static final int SERVER_CLIENT_ACCEPTED = 2;
-    private static final int JWE_SECRET_CREATED = 3;
+    private static final int JWE_X509_TOKEN_CREATED = 3;
     private static final int JWE_TOKEN_RECEIVED = 4;
 
     public String mSharedKey;
@@ -78,21 +86,41 @@ public class NSDActivity extends AppCompatActivity {
         Log.v(TAG,"onResume");
     }
 
-    @Override
-    protected void onStart() {
 
-//        Button buttonEnrollDevices =  findViewById(R.id.buttonEnrollNSDClients);
-
-        super.onStart();
-    }
     @Override
     protected void onStop() {
+        mClientToken = "";
+        mSharedKey = "";
         tearDownNSD();
         super.onStop();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == ACTIVITY_CSR_REQUEST){
+            if(resultCode == RESULT_OK){
+                Log.v(TAG,"SUCCESS: onActivityResult: ACTIVITY_CSR_REQUEST");
+                //TODO extract base64 cert, put in token and return it
+
+                Bundle clientBundle = data.getBundleExtra(CSRSignActivity.EXTRA_MESSAGE);
+                String x509cert = clientBundle.getString("cert");
+                mSharedKey = clientBundle.getString("shared_key");
+                mTokenCreateThread = new Thread(new JWEEncryptThread(x509cert,mSharedKey));
+                mTokenCreateThread.start();
+                Log.v(TAG, "X509 cert: " + clientBundle.getString("cert"));
 
 
+            } else {
+                Log.v(TAG,"FAILURE: onActivityResult: ACTIVITY_CSR_REQUEST failed");
+            }
+        }
+    }
+
+//    public void showEnrollmentOptions(){
+//        TextView secretText = findViewById(R.id.textViewSecret);
+//
+//        secretText.setText("Port OR Token: " + mLocalPort);
+//    }
 
     public void tearDownNSD(){
         if(mNsdManager != null){
@@ -105,17 +133,11 @@ public class NSDActivity extends AppCompatActivity {
             mNsdManager.unregisterService(mRegistrationListener);
             mNsdManager = null;
         }
-
     }
-
-//    public void createSecret(View view){
-//        mJWECreateThread = new Thread(new JWEKeyWrapThread());
-//        mJWECreateThread.start();
-//    }
 
     public void startSocketService(){
         mServerHandler = new ServerSocketHandler(this);
-        mJWEHandler = new JWEHandler(this);
+        mJWEDecryptHandler = new JWEDecryptHandler(this);
         mServerSocketThread = new Thread(new ServerThread());
         mServerSocketThread.start();
     }
@@ -179,10 +201,232 @@ public class NSDActivity extends AppCompatActivity {
         };
     }
 
-    public void showEnrollmentOptions(){
+    public void startCertificateReturn(){
+
+    }
+
+
+    public void startScan(View view){
+        Intent intent = new Intent(this,CodeScanActivity.class);
+        startActivity(intent);
+    }
+
+    public void handleToken(JWETokenMessageObject secretOb){
+        String sharedKeyTmp = mSharedKey;
+        if(decryptToken()){
+            Log.v(TAG,"Starting CSRSignActivity");
+            Intent csrSignIntent = new Intent(this,CSRSignActivity.class);
+
+//            csrSignIntent.put
+            Bundle clientBundle = new Bundle();
+            clientBundle.putString("csr", mCSRequest);
+            clientBundle.putString("client_ip", secretOb.getClientIp());
+            clientBundle.putInt("client_port", secretOb.getClientPort());
+            clientBundle.putString("shared_key", sharedKeyTmp);
+            csrSignIntent.putExtra(EXTRA_MESSAGE, clientBundle);
+
+            startActivityForResult(csrSignIntent,ACTIVITY_CSR_REQUEST);
+        }
+    }
+
+
+    public boolean decryptToken() {
+        JWEObject jweObject = null;
+        Log.v(TAG,"TOKEN: " + mClientToken);
+        Log.v(TAG,"SHARED_KEY: " + mSharedKey);
+
+        Payload payload = null;
+        try {
+            byte[] decodedKey = Base64.decode(mSharedKey,Base64.URL_SAFE);//byte[] decodedKey = Base64.decode(mSharedKey,Base64.DEFAULT); //was getting invalid key lengths with
+
+            Log.v(TAG,"KEY_LENGTH: " + decodedKey.length);
+
+            SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+            jweObject = JWEObject.parse(mClientToken);
+            jweObject.decrypt(new AESDecrypter(key));
+            payload = jweObject.getPayload();
+            Log.v(TAG,"PAYLOAD Decrypted!!!!");
+        } catch (Exception e) {
+            Log.e(TAG,"Token Decrypt Exception: ",e);
+        }
+
+        String csrRequest = "";
+        mCSRequest = "";
+        if(payload != null){
+            csrRequest = payload.toString();
+            Log.v(TAG,"payload: " + csrRequest);
+            if(csrRequest.length() > 0){
+                mCSRequest = csrRequest;
+                return true;
+            }
+
+        } else {
+            Button mScanButton = findViewById(R.id.buttonGoToScan);
+            mScanButton.setVisibility(View.VISIBLE);
+            Log.v(TAG,"Payload == null");
+        }
+
         TextView secretText = findViewById(R.id.textViewSecret);
 
-        secretText.setText("Port OR Token: " + mLocalPort);
+        secretText.setText("Operation failed try again");
+
+        return false;
+    }
+
+    private static class ServerSocketHandler extends Handler {
+        private final WeakReference<NSDActivity> mActivity;
+
+        public ServerSocketHandler(NSDActivity activity){
+            mActivity = new WeakReference<NSDActivity>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            NSDActivity activity = mActivity.get();
+            Log.v(TAG,"ServerSocketHandler.handleMessage");
+            TextView secretText = activity.findViewById(R.id.textViewSecret);
+            if(activity != null){
+                if (msg.what == SERVER_SOCKET_STARTED){
+                    Log.v(TAG,"ServerSocketHandler: SERVER_SOCKET_STARTED");
+                    activity.startNSDService();
+                    secretText.setText("Advertising on PORT: " + activity.mLocalPort);
+                }
+            }
+        }
+    }
+
+    private static class JWEDecryptHandler extends Handler {
+        private final WeakReference<NSDActivity> mActivity;
+
+        public JWEDecryptHandler(NSDActivity activity){
+            mActivity = new WeakReference<NSDActivity>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            NSDActivity activity = mActivity.get();
+            Log.v(TAG,"JWEDecryptHandler.handleMessage");
+            if(activity != null){
+                if(msg.what == JWE_TOKEN_RECEIVED){
+                    JWETokenMessageObject secretOb = (JWETokenMessageObject) msg.obj;
+                    Log.v(TAG,"JWEDecryptHandler: JWE_TOKEN_RECEIVED");
+                    activity.mClientToken = secretOb.getToken();
+                    activity.tearDownNSD();
+                    activity.handleToken(secretOb);
+                }
+            }
+        }
+    }
+
+    private static class JWEEncryptHandler extends Handler {
+        private final WeakReference<NSDActivity> mActivity;
+
+        public JWEEncryptHandler(NSDActivity activity){
+            mActivity = new WeakReference<NSDActivity>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            NSDActivity activity = mActivity.get();
+            Log.v(TAG,"JWEDecryptHandler.handleMessage");
+            if(activity != null){
+                if(msg.what == JWE_X509_TOKEN_CREATED){
+                    Log.v(TAG,"x509 token created and sent to handler")
+                }
+            }
+        }
+    }
+
+
+    private static class JWE509TokenMessage {
+        private String token;
+
+        public JWE509TokenMessage(String token){
+            this.token = token;
+        }
+
+        public String getToken(){
+            return this.token;
+        }
+
+    }
+
+    private static class JWETokenMessageObject {
+        private String token;
+        private String clientIp;
+        private int clientPort;
+
+        public JWETokenMessageObject(String token, String clientIp, int clientPort){
+            this.token = token;
+            this.clientIp = clientIp;
+            this.clientPort = clientPort;
+        }
+
+        public String getToken(){
+            return this.token;
+        }
+        public String getClientIp(){
+            return this.clientIp;
+        }
+        public int getClientPort(){
+            return this.clientPort;
+        }
+    }
+
+    class JWEEncryptThread implements Runnable {
+        private String base64Cert;
+        private String key;
+
+        public JWEEncryptThread(String base64Cert, String key){
+            this.base64Cert = base64Cert;
+            this.key = key;
+        }
+
+        public void run() {
+            // Generate symmetric 128 bit AES key
+            Payload payload = new Payload(this.base64Cert);
+            JWEAlgorithm alg = JWEAlgorithm.A128KW;
+            EncryptionMethod encryptionMethod = EncryptionMethod.A128GCM;
+
+
+            JWEObject jwe = new JWEObject(
+                    new JWEHeader(alg, encryptionMethod),
+                    payload);
+
+
+            byte[] keyBytes = Base64.decode(this.key,Base64.URL_SAFE);
+            SecretKey key = new SecretKeySpec(keyBytes, 0, keyBytes.length, "AES");
+
+//            KeyGenerator keyGen = null;
+//            try {
+//                keyGen = KeyGenerator.getInstance("AES");
+//            } catch (NoSuchAlgorithmException e) {
+//                e.printStackTrace();
+//            }
+//            keyGen.init(128);
+//
+//            SecretKey key = keyGen.generateKey();
+
+            try {
+                jwe.encrypt(new AESEncrypter(key));
+            } catch (JOSEException e) {
+                e.printStackTrace();
+            }
+
+            String jweString = jwe.serialize();
+//            String keyString = null;
+//            try {
+//                keyString = new String(key.getEncoded(),"UTF-8");
+//            } catch (UnsupportedEncodingException e) {
+//                Log.e(TAG,"UnsupportedEncodingException",e);
+//            }
+            Log.v(TAG,"JWE secret base64: " + Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP));
+//            Log.v(TAG,"JWE secret string: " + keyString);
+            Log.v(TAG,"JWE Token: " + jweString);
+
+            Message jweMessage = mJWEDecryptHandler.obtainMessage(JWE_X509_TOKEN_CREATED, new JWE509TokenMessage(jweString));
+            mJWEDecryptHandler.sendMessage(jweMessage);
+        }
     }
 
     class ServerThread implements Runnable {
@@ -209,7 +453,7 @@ public class NSDActivity extends AppCompatActivity {
                     mServerHandler.sendEmptyMessage(SERVER_CLIENT_ACCEPTED);
 
                     CommunicationThread commThread = new CommunicationThread(socket);
-                    new Thread(commThread).start();
+                    new Thread(commThread).start();//TODO huh? why not just commThread.start()
 
                 } catch (IOException e) {
                     Log.e(TAG,"ServerThread Client Socket Exception",e);
@@ -217,50 +461,6 @@ public class NSDActivity extends AppCompatActivity {
             }
         }
     }
-
-//    class JWEKeyWrapThread implements Runnable {
-//
-//        public void run() {
-//            // Generate symmetric 128 bit AES key
-//            Payload payload = new Payload("Hello world KW!");
-//            JWEAlgorithm alg = JWEAlgorithm.A128KW;
-//            EncryptionMethod encryptionMethod = EncryptionMethod.A128GCM;
-//
-//
-//            JWEObject jwe = new JWEObject(
-//                    new JWEHeader(alg, encryptionMethod),
-//                    payload);
-//
-//            KeyGenerator keyGen = null;
-//            try {
-//                keyGen = KeyGenerator.getInstance("AES");
-//            } catch (NoSuchAlgorithmException e) {
-//                e.printStackTrace();
-//            }
-//            keyGen.init(128);
-//
-//            SecretKey key = keyGen.generateKey();
-//
-//            try {
-//                jwe.encrypt(new AESEncrypter(key));
-//            } catch (JOSEException e) {
-//                e.printStackTrace();
-//            }
-//
-//            String jweString = jwe.serialize();
-//            String keyString = null;
-//            try {
-//                keyString = new String(key.getEncoded(),"UTF-8");
-//            } catch (UnsupportedEncodingException e) {
-//                Log.e(TAG,"UnsupportedEncodingException",e);
-//            }
-//            Log.v(TAG,"JWE secret base64: " + Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP));
-//            Log.v(TAG,"JWE secret string: " + keyString);
-//            Log.v(TAG,"JWE Token: " + jweString);
-//            Message jweMessage = mJWEHandler.obtainMessage(JWE_SECRET_CREATED, new JWESecretMessageObject(Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP)));
-//            mJWEHandler.sendMessage(jweMessage);
-//        }
-//    }
 
     class CommunicationThread implements Runnable {
 
@@ -297,8 +497,8 @@ public class NSDActivity extends AppCompatActivity {
                     Log.v(TAG,"token from client: " + encToken);
                     String clientIp = clientSocket.getInetAddress().toString();
                     int clientPort = clientSocket.getPort();
-                    Message jweMessage = mJWEHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessageObject(encToken,clientIp,clientPort));
-                    mJWEHandler.sendMessage(jweMessage);
+                    Message jweMessage = mJWEDecryptHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessageObject(encToken,clientIp,clientPort));
+                    mJWEDecryptHandler.sendMessage(jweMessage);
                     this.input.close(); //TODO will this cause socket to close?
                     return;
                 } catch (IOException e) {
@@ -309,170 +509,45 @@ public class NSDActivity extends AppCompatActivity {
 
     }
 
-    private static class JWESecretMessageObject {
-        private String secret;
+    private void send509Token(String token, InetAddress address, int portNum) throws IOException {
+        try (
+            Socket clientSocket = new Socket(address, portNum);
+            PrintWriter out =
+                    new PrintWriter(clientSocket.getOutputStream(), true);
 
-        public JWESecretMessageObject(String secret){
-            this.secret = secret;
+        ){
+            out.print(token); //send the token
         }
 
-        public String getSecret(){
-            return this.secret;
-        }
 
     }
 
-    private static class JWETokenMessageObject {
-        private String token;
-        private String clientIp;
-        private int clientPort;
-
-        public JWETokenMessageObject(String token, String clientIp, int clientPort){
-            this.token = token;
-            this.clientIp = clientIp;
-            this.clientPort = clientPort;
-        }
-
-        public String getToken(){
-            return this.token;
-        }
-        public String getClientIp(){
-            return this.clientIp;
-        }
-        public int getClientPort(){
-            return this.clientPort;
-        }
-    }
-
-    private static class ServerSocketHandler extends Handler {
-        private final WeakReference<NSDActivity> mActivity;
-
-        public ServerSocketHandler(NSDActivity activity){
-            mActivity = new WeakReference<NSDActivity>(activity);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-                NSDActivity activity = mActivity.get();
-                Log.v(TAG,"ServerSocketHandler.handleMessage");
-                TextView secretText = activity.findViewById(R.id.textViewSecret);
-                if(activity != null){
-                    if (msg.what == SERVER_SOCKET_STARTED){
-                        Log.v(TAG,"ServerSocketHandler: SERVER_SOCKET_STARTED");
-                        activity.startNSDService();
-                        secretText.setText("Advertising on PORT: " + activity.mLocalPort);
-                    }
-                }
-        }
-    }
-
-    public void startScan(View view){
-        Intent intent = new Intent(this,CodeScanActivity.class);
-        startActivity(intent);
-    }
-
-    private static class JWEHandler extends Handler {
-        private final WeakReference<NSDActivity> mActivity;
-
-        public JWEHandler(NSDActivity activity){
-            mActivity = new WeakReference<NSDActivity>(activity);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            NSDActivity activity = mActivity.get();
-            Log.v(TAG,"JWEHandler.handleMessage");
-            if(activity != null){
-                if (msg.what == JWE_SECRET_CREATED){
-                    JWESecretMessageObject secretOb = (JWESecretMessageObject) msg.obj;
-                    Log.v(TAG,"JWEHandler: JWE_SECRET_CREATED");
-                } else if(msg.what == JWE_TOKEN_RECEIVED){
-                    JWETokenMessageObject secretOb = (JWETokenMessageObject) msg.obj;
-                    Log.v(TAG,"JWEHandler: JWE_TOKEN_RECEIVED");
-                    activity.mClientToken = secretOb.getToken();
-                    activity.tearDownNSD();
-                    activity.handleToken(secretOb);
-                }
-            }
-        }
-    }
-
-    public void handleToken(JWETokenMessageObject secretOb){
-        if(decryptToken()){
-            Log.v(TAG,"Starting CSRSignActivity");
-            Intent csrSignIntent = new Intent(this,CSRSignActivity.class);
-
-//            csrSignIntent.put
-            Bundle clientBundle = new Bundle();
-            clientBundle.putString("csr", mCSRequest);
-            clientBundle.putString("client_ip", secretOb.getClientIp());
-            clientBundle.putInt("client_port", secretOb.getClientPort());
-            clientBundle.putString("shared_key", mSharedKey);
-            csrSignIntent.putExtra(EXTRA_MESSAGE, clientBundle);
-
-            startActivityForResult(csrSignIntent,ACTIVITY_CSR_REQUEST);
-        }
-    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == ACTIVITY_CSR_REQUEST){
-            if(resultCode == RESULT_OK){
-                Log.v(TAG,"SUCCESS: onActivityResult: ACTIVITY_CSR_REQUEST");
-                //TODO extract base64 cert, put in token and return it
-
-                Bundle clientBundle = data.getBundleExtra(CSRSignActivity.EXTRA_MESSAGE);
-                Log.v(TAG, "X509 cert: " + clientBundle.getString("cert"));
-
-            } else {
-                Log.v(TAG,"FAILURE: onActivityResult: ACTIVITY_CSR_REQUEST failed");
-            }
-        }
-    }
-
-    public boolean decryptToken() {
-        JWEObject jweObject = null;
-        Log.v(TAG,"TOKEN: " + mClientToken);
-        Log.v(TAG,"SHARED_KEY: " + mSharedKey);
-//        Log.v(TAG,"KEY_LENGTH: " + mSharedKey);
-        Payload payload = null;
-        try {
-
-//            byte[] decodedKey = Base64.decode(mSharedKey,Base64.DEFAULT); //was getting invalid key lengths with
-            byte[] decodedKey = Base64.decode(mSharedKey,Base64.URL_SAFE);
-            Log.v(TAG,"KEY_LENGTH: " + decodedKey.length);
-            SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
-            jweObject = JWEObject.parse(mClientToken);
-            jweObject.decrypt(new AESDecrypter(key));
-            payload = jweObject.getPayload();
-            Log.v(TAG,"PAYLOAD Decrypted!!!!");
-        } catch (Exception e) {
-            Log.e(TAG,"Token Decrypt Exception: ",e);
-        }
-        mClientToken = "";
-        mSharedKey = "";
-
-        String csrRequest = "";
-        mCSRequest = "";
-        if(payload != null){
-            csrRequest = payload.toString();
-            Log.v(TAG,"payload: " + csrRequest);
-            if(csrRequest.length() > 0){
-                mCSRequest = csrRequest;
-                return true;
-            }
-
-        } else {
-            Button mScanButton = findViewById(R.id.buttonGoToScan);
-            mScanButton.setVisibility(View.VISIBLE);
-            Log.v(TAG,"Payload == null");
-        }
-
-        TextView secretText = findViewById(R.id.textViewSecret);
-
-        secretText.setText("Operation failed try again");
-
-        return false;
-    }
-
-
+//    class Socket509Send implements Runnable {
+//
+//        private InetAddress address;
+//        private int portNum;
+//        private String token;
+//
+//        public Socket509Send(String token, InetAddress address, int portNum) {
+////            InetAddress inetAddress = InetAddress.getByName(address);
+//            this.portNum = portNum;
+//            this.address = address;
+//            this.token = token;
+//        }
+//
+//        public void run() {
+//            try {
+//                Socket clientSocket = new Socket(this.address, this.portNum);
+//                while (!Thread.currentThread().isInterrupted()) {
+//                    PrintWriter out =
+//                            new PrintWriter(clientSocket.getOutputStream(), true);
+//                    out.print(this.token);
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//
+//        }
+//
+//    }
 }
