@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -62,6 +61,9 @@ public class NSDActivity extends AppCompatActivity {
     private static final int SERVER_CLIENT_ACCEPTED = 2;
     private static final int JWE_X509_TOKEN_CREATED = 3;
     private static final int JWE_TOKEN_RECEIVED = 4;
+
+    private String remoteClientIp;
+    private int remoteClientPort;
 
     public String mSharedKey;
     public String mClientToken;
@@ -97,7 +99,9 @@ public class NSDActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.v(TAG,"onActivityResult");
         if(requestCode == ACTIVITY_CSR_REQUEST){
+            Log.v(TAG,"requestCode == ACTIVITY_CSR_REQUEST");
             if(resultCode == RESULT_OK){
                 Log.v(TAG,"SUCCESS: onActivityResult: ACTIVITY_CSR_REQUEST");
                 //TODO extract base64 cert, put in token and return it
@@ -105,6 +109,10 @@ public class NSDActivity extends AppCompatActivity {
                 Bundle clientBundle = data.getBundleExtra(CSRSignActivity.EXTRA_MESSAGE);
                 String x509cert = clientBundle.getString("cert");
                 mSharedKey = clientBundle.getString("shared_key");
+
+                remoteClientIp = clientBundle.getString("client_ip");
+                remoteClientPort = clientBundle.getInt("client_port");
+
                 mTokenCreateThread = new Thread(new JWEEncryptThread(x509cert,mSharedKey));
                 mTokenCreateThread.start();
                 Log.v(TAG, "X509 cert: " + clientBundle.getString("cert"));
@@ -201,9 +209,6 @@ public class NSDActivity extends AppCompatActivity {
         };
     }
 
-    public void startCertificateReturn(){
-
-    }
 
 
     public void startScan(View view){
@@ -211,7 +216,7 @@ public class NSDActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public void handleToken(JWETokenMessageObject secretOb){
+    public void handleToken(JWETokenMessage secretOb){
         String sharedKeyTmp = mSharedKey;
         if(decryptToken()){
             Log.v(TAG,"Starting CSRSignActivity");
@@ -308,7 +313,7 @@ public class NSDActivity extends AppCompatActivity {
             Log.v(TAG,"JWEDecryptHandler.handleMessage");
             if(activity != null){
                 if(msg.what == JWE_TOKEN_RECEIVED){
-                    JWETokenMessageObject secretOb = (JWETokenMessageObject) msg.obj;
+                    JWETokenMessage secretOb = (JWETokenMessage) msg.obj;
                     Log.v(TAG,"JWEDecryptHandler: JWE_TOKEN_RECEIVED");
                     activity.mClientToken = secretOb.getToken();
                     activity.tearDownNSD();
@@ -331,7 +336,13 @@ public class NSDActivity extends AppCompatActivity {
             Log.v(TAG,"JWEDecryptHandler.handleMessage");
             if(activity != null){
                 if(msg.what == JWE_X509_TOKEN_CREATED){
-                    Log.v(TAG,"x509 token created and sent to handler")
+                    Log.v(TAG,"x509 token created and sent to handler");
+                    JWE509TokenMessage message = (JWE509TokenMessage) msg.obj;
+                    try {
+                        activity.send509Token(message.getToken());
+                    } catch (IOException e) {
+                        Log.e(TAG,"send509Token failed",e);
+                    }
                 }
             }
         }
@@ -351,12 +362,12 @@ public class NSDActivity extends AppCompatActivity {
 
     }
 
-    private static class JWETokenMessageObject {
+    private static class JWETokenMessage {
         private String token;
         private String clientIp;
         private int clientPort;
 
-        public JWETokenMessageObject(String token, String clientIp, int clientPort){
+        public JWETokenMessage(String token, String clientIp, int clientPort){
             this.token = token;
             this.clientIp = clientIp;
             this.clientPort = clientPort;
@@ -468,10 +479,14 @@ public class NSDActivity extends AppCompatActivity {
 
         private BufferedReader input;
 
+        private String remoteInetAddress;
+        private int remotePortNum;
+
         public CommunicationThread(Socket clientSocket) {
 
             this.clientSocket = clientSocket;
-
+            this.remoteInetAddress = this.clientSocket.getInetAddress().toString();
+            this.remotePortNum = this.clientSocket.getPort();
             try {
                 //Closing the returned InputStream will close the associated socket.
                 this.input = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
@@ -495,9 +510,8 @@ public class NSDActivity extends AppCompatActivity {
                     Log.v(TAG,"Finished reading socket");
                     Log.v(TAG,"CommunicationThread.run readline");
                     Log.v(TAG,"token from client: " + encToken);
-                    String clientIp = clientSocket.getInetAddress().toString();
-                    int clientPort = clientSocket.getPort();
-                    Message jweMessage = mJWEDecryptHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessageObject(encToken,clientIp,clientPort));
+
+                    Message jweMessage = mJWEDecryptHandler.obtainMessage(JWE_TOKEN_RECEIVED, new JWETokenMessage(encToken,this.remoteInetAddress,this.remotePortNum));
                     mJWEDecryptHandler.sendMessage(jweMessage);
                     this.input.close(); //TODO will this cause socket to close?
                     return;
@@ -509,17 +523,16 @@ public class NSDActivity extends AppCompatActivity {
 
     }
 
-    private void send509Token(String token, InetAddress address, int portNum) throws IOException {
+    public void send509Token(String token) throws IOException {
+        Log.v(TAG, "Sending Token to " + remoteClientIp + " on port " + remoteClientPort);
         try (
-            Socket clientSocket = new Socket(address, portNum);
+            Socket clientSocket = new Socket(remoteClientIp, remoteClientPort);
             PrintWriter out =
                     new PrintWriter(clientSocket.getOutputStream(), true);
 
         ){
             out.print(token); //send the token
         }
-
-
     }
 
 //    class Socket509Send implements Runnable {
