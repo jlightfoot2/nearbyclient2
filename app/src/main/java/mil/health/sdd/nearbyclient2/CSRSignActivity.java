@@ -68,8 +68,8 @@ public class CSRSignActivity extends AppCompatActivity implements CAPreference.C
             Log.e(TAG,"load or sign Exception",e);
         }
 
-        Intent mainIntent = new Intent(this, MainActivity.class);
-        startActivity(mainIntent);
+//        Intent mainIntent = new Intent(this, MainActivity.class);
+//        startActivity(mainIntent);
     }
 
     private X509Certificate signCSR(PKCS10CertificationRequest csrReq) throws InvalidKeySpecException, CAPreferencePrivateKeyDecryptException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, OperatorCreationException, IOException {

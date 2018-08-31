@@ -30,6 +30,7 @@ import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -51,9 +52,10 @@ public class NSDActivity extends AppCompatActivity {
 
     private ServerSocketHandler mServerHandler;
     private JWEDecryptHandler mJWEDecryptHandler;
+    private JWEEncryptHandler mJWEEncryptHandler;
     private Thread mServerSocketThread;
     private Thread mTokenCreateThread;
-
+    private Thread mSendCertThread;
     private String mCSRequest;
     private static final int ACTIVITY_CSR_REQUEST = 1;
 
@@ -94,6 +96,10 @@ public class NSDActivity extends AppCompatActivity {
         mClientToken = "";
         mSharedKey = "";
         tearDownNSD();
+        if(mSendCertThread != null && !mSendCertThread.isInterrupted()){
+            mSendCertThread.interrupt();
+            mSendCertThread = null;
+        }
         super.onStop();
     }
 
@@ -112,7 +118,7 @@ public class NSDActivity extends AppCompatActivity {
 
                 remoteClientIp = clientBundle.getString("client_ip");
                 remoteClientPort = clientBundle.getInt("client_port");
-
+                mJWEEncryptHandler = new JWEEncryptHandler(this);
                 mTokenCreateThread = new Thread(new JWEEncryptThread(x509cert,mSharedKey));
                 mTokenCreateThread.start();
                 Log.v(TAG, "X509 cert: " + clientBundle.getString("cert"));
@@ -333,7 +339,7 @@ public class NSDActivity extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             NSDActivity activity = mActivity.get();
-            Log.v(TAG,"JWEDecryptHandler.handleMessage");
+            Log.v(TAG,"JWEEncryptHandler.handleMessage");
             if(activity != null){
                 if(msg.what == JWE_X509_TOKEN_CREATED){
                     Log.v(TAG,"x509 token created and sent to handler");
@@ -384,6 +390,36 @@ public class NSDActivity extends AppCompatActivity {
         }
     }
 
+
+    class Socket509SendThread implements Runnable {
+        private String token;
+        private String remoteClientIp;
+        private int remoteClientPort;
+
+        public Socket509SendThread(String token, String remoteClientIp, int remoteClientPort) {
+            this.token = token;
+            this.remoteClientIp = remoteClientIp;
+            this.remoteClientPort = remoteClientPort;
+        }
+
+        public void run() {
+            Log.v(TAG, "Sending Token to " + remoteClientIp + " on port " + remoteClientPort);
+            Log.v(TAG,"Token: " + token);
+            try (
+                    Socket clientSocket = new Socket(this.remoteClientIp, this.remoteClientPort);
+                    PrintWriter out =
+                            new PrintWriter(clientSocket.getOutputStream(), true);
+
+            ){
+                out.print(token); //send the token
+            } catch (UnknownHostException e) {
+                Log.e(TAG,"",e);
+            } catch (IOException e) {
+                Log.e(TAG,"",e);
+            }
+        }
+    }
+
     class JWEEncryptThread implements Runnable {
         private String base64Cert;
         private String key;
@@ -425,18 +461,12 @@ public class NSDActivity extends AppCompatActivity {
             }
 
             String jweString = jwe.serialize();
-//            String keyString = null;
-//            try {
-//                keyString = new String(key.getEncoded(),"UTF-8");
-//            } catch (UnsupportedEncodingException e) {
-//                Log.e(TAG,"UnsupportedEncodingException",e);
-//            }
+
             Log.v(TAG,"JWE secret base64: " + Base64.encodeToString(key.getEncoded(),Base64.NO_WRAP));
-//            Log.v(TAG,"JWE secret string: " + keyString);
             Log.v(TAG,"JWE Token: " + jweString);
 
-            Message jweMessage = mJWEDecryptHandler.obtainMessage(JWE_X509_TOKEN_CREATED, new JWE509TokenMessage(jweString));
-            mJWEDecryptHandler.sendMessage(jweMessage);
+            Message jweMessage = mJWEEncryptHandler.obtainMessage(JWE_X509_TOKEN_CREATED, new JWE509TokenMessage(jweString));
+            mJWEEncryptHandler.sendMessage(jweMessage);
         }
     }
 
@@ -524,43 +554,9 @@ public class NSDActivity extends AppCompatActivity {
     }
 
     public void send509Token(String token) throws IOException {
-        Log.v(TAG, "Sending Token to " + remoteClientIp + " on port " + remoteClientPort);
-        try (
-            Socket clientSocket = new Socket(remoteClientIp, remoteClientPort);
-            PrintWriter out =
-                    new PrintWriter(clientSocket.getOutputStream(), true);
-
-        ){
-            out.print(token); //send the token
-        }
+        Log.v(TAG, "send509Token called");
+        mSendCertThread = new Thread(new Socket509SendThread(token,remoteClientIp,remoteClientPort));
+        mSendCertThread.start();
     }
 
-//    class Socket509Send implements Runnable {
-//
-//        private InetAddress address;
-//        private int portNum;
-//        private String token;
-//
-//        public Socket509Send(String token, InetAddress address, int portNum) {
-////            InetAddress inetAddress = InetAddress.getByName(address);
-//            this.portNum = portNum;
-//            this.address = address;
-//            this.token = token;
-//        }
-//
-//        public void run() {
-//            try {
-//                Socket clientSocket = new Socket(this.address, this.portNum);
-//                while (!Thread.currentThread().isInterrupted()) {
-//                    PrintWriter out =
-//                            new PrintWriter(clientSocket.getOutputStream(), true);
-//                    out.print(this.token);
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
-//
-//    }
 }
