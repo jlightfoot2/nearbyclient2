@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -144,6 +145,7 @@ public class NSDActivity extends AppCompatActivity {
             } catch (IOException e) {
                 Log.e(TAG,"ServerSocket.close",e);
             }
+            Log.v(TAG,"tearDownNSD: mNsdManager.unregisterService");
             mNsdManager.unregisterService(mRegistrationListener);
             mNsdManager = null;
         }
@@ -404,18 +406,22 @@ public class NSDActivity extends AppCompatActivity {
 
         public void run() {
             Log.v(TAG, "Sending Token to " + remoteClientIp + " on port " + remoteClientPort);
+            Log.v(TAG,remoteClientIp);
             Log.v(TAG,"Token: " + token);
+
             try (
-                    Socket clientSocket = new Socket(this.remoteClientIp, this.remoteClientPort);
+
+                    Socket clientSocket = new Socket(InetAddress.getByName(this.remoteClientIp), this.remoteClientPort);
                     PrintWriter out =
                             new PrintWriter(clientSocket.getOutputStream(), true);
 
             ){
-                out.print(token); //send the token
+                out.println(token); //send the token
+                clientSocket.close();
             } catch (UnknownHostException e) {
-                Log.e(TAG,"",e);
+                Log.e(TAG,"UnknownHostException",e);
             } catch (IOException e) {
-                Log.e(TAG,"",e);
+                Log.e(TAG,"IOException",e);
             }
         }
     }
@@ -444,15 +450,6 @@ public class NSDActivity extends AppCompatActivity {
             byte[] keyBytes = Base64.decode(this.key,Base64.URL_SAFE);
             SecretKey key = new SecretKeySpec(keyBytes, 0, keyBytes.length, "AES");
 
-//            KeyGenerator keyGen = null;
-//            try {
-//                keyGen = KeyGenerator.getInstance("AES");
-//            } catch (NoSuchAlgorithmException e) {
-//                e.printStackTrace();
-//            }
-//            keyGen.init(128);
-//
-//            SecretKey key = keyGen.generateKey();
 
             try {
                 jwe.encrypt(new AESEncrypter(key));
@@ -515,7 +512,8 @@ public class NSDActivity extends AppCompatActivity {
         public CommunicationThread(Socket clientSocket) {
 
             this.clientSocket = clientSocket;
-            this.remoteInetAddress = this.clientSocket.getInetAddress().toString();
+            this.remoteInetAddress = this.clientSocket.getInetAddress().getHostAddress();
+            Log.v(TAG,"Socket.getInetAddress().toString() == " +this.remoteInetAddress);
             this.remotePortNum = this.clientSocket.getPort();
             try {
                 //Closing the returned InputStream will close the associated socket.
