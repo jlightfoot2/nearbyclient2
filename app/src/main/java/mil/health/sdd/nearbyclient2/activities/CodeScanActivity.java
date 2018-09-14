@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -19,6 +19,8 @@ import android.widget.TextView;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
+
+import mil.health.sdd.nearbyclient2.R;
 
 public class CodeScanActivity extends AppCompatActivity {
 //    private FirebaseVisionBarcodeDetectorOptions mFireBaseOptions;

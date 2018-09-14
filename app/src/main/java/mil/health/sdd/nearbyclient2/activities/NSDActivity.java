@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.content.Context;
 import android.content.Intent;
@@ -35,6 +35,8 @@ import java.net.UnknownHostException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
+import mil.health.sdd.nearbyclient2.R;
 
 /**
  * Advertises a CA x508 signing service via NSD which clients can discover in order to submit CSRs

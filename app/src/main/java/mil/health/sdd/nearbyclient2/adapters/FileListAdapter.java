@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.adapters;
 
 import android.app.Activity;
 import android.support.annotation.NonNull;
@@ -9,6 +9,8 @@ import android.widget.ArrayAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import mil.health.sdd.nearbyclient2.FileListItem;
 
 public class FileListAdapter extends ArrayAdapter<FileListItem> {
     private final String TAG = "FileListAdapter";

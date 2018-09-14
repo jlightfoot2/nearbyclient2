@@ -16,6 +16,9 @@ import org.junit.runners.MethodSorters;
 
 import java.security.cert.X509Certificate;
 
+import mil.health.sdd.nearbyclient2.activities.PKIActivity;
+import mil.health.sdd.nearbyclient2.helper.CAHelper;
+
 @MediumTest
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CAHelperTest {
@@ -24,7 +27,7 @@ public class CAHelperTest {
 
     @Test
     public void init_new() throws Exception{
-        CAHelper caHelper = new CAHelper(new BouncyCastleProvider(),PKIActivity.CA_CN_PATTERN,PKIActivity.CA_CN);
+        CAHelper caHelper = new CAHelper(new BouncyCastleProvider(), PKIActivity.CA_CN_PATTERN,PKIActivity.CA_CN);
         try{
             caHelper.init();
         } catch (Exception e){

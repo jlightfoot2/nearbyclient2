@@ -51,23 +51,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-class CAPreferencePrivateKeyDecryptException extends Exception{
-    public CAPreferencePrivateKeyDecryptException(String message,Exception e){
-        super(message,e);
-    }
-}
-
-class CAPreferenceException extends Exception{
-
-    public CAPreferenceException(String message){
-        super(message);
-    }
-
-    public CAPreferenceException(String message,Exception e){
-        super(message,e);
-    }
-}
-
 public class CAPreference {
     private Context context;
     private static final String TAG = "CAPreference";
@@ -386,5 +369,22 @@ public class CAPreference {
 
     public static interface CaPreferenceLoadListener{
         void onCaPreferenceLoaded(CAPreference pref);
+    }
+
+    public static class CAPreferencePrivateKeyDecryptException extends Exception{
+        public CAPreferencePrivateKeyDecryptException(String message,Exception e){
+            super(message,e);
+        }
+    }
+
+    public static class CAPreferenceException extends Exception{
+
+        public CAPreferenceException(String message){
+            super(message);
+        }
+
+        public CAPreferenceException(String message,Exception e){
+            super(message,e);
+        }
     }
 }

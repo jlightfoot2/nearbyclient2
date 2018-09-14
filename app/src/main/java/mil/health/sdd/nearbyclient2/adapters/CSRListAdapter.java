@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.adapters;
 
 import android.graphics.Color;
 import android.support.annotation.NonNull;
@@ -13,6 +13,10 @@ import android.widget.CompoundButton;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import mil.health.sdd.nearbyclient2.FileListItem;
+import mil.health.sdd.nearbyclient2.R;
+import mil.health.sdd.nearbyclient2.activities.CSRFilesActivity;
 
 public class CSRListAdapter extends ArrayAdapter<FileListItem> {
     private final String TAG = "FileListAdapter";

@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.fragments;
 
 
 import android.content.Context;
@@ -9,6 +9,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+
+import mil.health.sdd.nearbyclient2.CertInfo;
+import mil.health.sdd.nearbyclient2.R;
 
 
 /**

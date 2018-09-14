@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -15,6 +15,10 @@ import android.widget.Toast;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import mil.health.sdd.nearbyclient2.adapters.FileListAdapter;
+import mil.health.sdd.nearbyclient2.FileListItem;
+import mil.health.sdd.nearbyclient2.R;
 
 public class CertFilesActivity extends AppCompatActivity implements FileListAdapter.OnGetViewListener {
     public static final String TAG = "CertFilesActivity";

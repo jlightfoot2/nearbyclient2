@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -28,6 +28,13 @@ import java.security.cert.CertificateException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+
+import mil.health.sdd.nearbyclient2.helper.CAHelper;
+import mil.health.sdd.nearbyclient2.CAPreference;
+import mil.health.sdd.nearbyclient2.fragments.CaCertEditFragment;
+import mil.health.sdd.nearbyclient2.fragments.CaCertFragment;
+import mil.health.sdd.nearbyclient2.CertInfo;
+import mil.health.sdd.nearbyclient2.R;
 
 //import android.app.FragmentManager;
 //import android.app.FragmentTransaction;
@@ -178,7 +185,7 @@ public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaC
             e.printStackTrace();
         } catch (IllegalBlockSizeException e) {
             e.printStackTrace();
-        } catch (CAPreferenceException e) {
+        } catch (CAPreference.CAPreferenceException e) {
             e.printStackTrace();
         }
     }

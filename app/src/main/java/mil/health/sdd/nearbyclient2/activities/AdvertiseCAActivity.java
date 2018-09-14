@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.app.Activity;
 import android.content.Context;
@@ -33,6 +33,10 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+
+import mil.health.sdd.nearbyclient2.CAPreference;
+import mil.health.sdd.nearbyclient2.helper.CSRHelper;
+import mil.health.sdd.nearbyclient2.R;
 
 public class AdvertiseCAActivity extends Activity {
     public static final String SERVICE_ID = "mil.health.sdd.nearbyclient2.CA_SYSTEM";
@@ -207,7 +211,7 @@ public class AdvertiseCAActivity extends Activity {
                         } catch (NoSuchProviderException e) {
                             Log.e(TAG,"NoSuchProviderException",e);
 
-                        } catch (CAPreferencePrivateKeyDecryptException e) {
+                        } catch (CAPreference.CAPreferencePrivateKeyDecryptException e) {
 
                             Log.e(TAG,"CAPreferencePrivateKeyDecryptException",e);
                         }

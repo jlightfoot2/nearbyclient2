@@ -22,23 +22,23 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name=".activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".AdvertiseCAActivity" />
-        <activity android:name=".PKIActivity" />
-        <activity android:name=".CSRFilesActivity" />
-        <activity android:name=".CertFilesActivity" />
-        <activity android:name=".NSDActivity" />
+        <activity android:name=".activities.AdvertiseCAActivity" />
+        <activity android:name=".activities.PKIActivity" />
+        <activity android:name=".activities.CSRFilesActivity" />
+        <activity android:name=".activities.CertFilesActivity" />
+        <activity android:name=".activities.NSDActivity" />
         <activity
-            android:name=".CodeScanActivity"
+            android:name=".activities.CodeScanActivity"
             android:label="@string/title_activity_code_scan"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".CSRSignActivity"></activity>
+        <activity android:name=".activities.CSRSignActivity"></activity>
     </application>
 
 </manifest>

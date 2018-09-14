@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.Manifest;
 import android.content.Context;
@@ -12,6 +12,9 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
+
+import mil.health.sdd.nearbyclient2.CAPreference;
+import mil.health.sdd.nearbyclient2.R;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_ADVERTISE_MESSAGE = "mil.health.sdd.nearbyclient2.ADVERTISE_MESSAGE";

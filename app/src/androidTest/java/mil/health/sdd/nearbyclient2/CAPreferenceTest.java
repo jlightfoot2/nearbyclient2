@@ -26,6 +26,10 @@ import java.security.Security;
 import java.util.Arrays;
 import java.util.Map;
 
+import mil.health.sdd.nearbyclient2.activities.PKIActivity;
+import mil.health.sdd.nearbyclient2.helper.CAHelper;
+import mil.health.sdd.nearbyclient2.helper.CSRHelper;
+
 import static org.junit.Assert.assertEquals;
 
 @MediumTest
@@ -83,7 +87,7 @@ public class CAPreferenceTest {
     public void ac_storage_integrity() throws Exception {
         Context context = InstrumentationRegistry.getTargetContext();
         CAPreference caPreference = new CAPreference(context,PREFERENCE_FILE_NAME,ANDROID_KEYSTORE_ALIAS);
-        CAHelper caHelper = new CAHelper(new BouncyCastleProvider(),PKIActivity.CA_CN_PATTERN,PKIActivity.CA_CN);
+        CAHelper caHelper = new CAHelper(new BouncyCastleProvider(), PKIActivity.CA_CN_PATTERN,PKIActivity.CA_CN);
         caHelper.init();
 
         caPreference.store(caHelper.getKeyPair(),caHelper.getCertificate());

@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.helper;
 
 import android.util.Log;
 
@@ -34,6 +34,8 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
+
+import mil.health.sdd.nearbyclient2.CertInfo;
 
 public class CAHelper {
 

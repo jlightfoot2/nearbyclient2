@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,6 +16,10 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+
+import mil.health.sdd.nearbyclient2.CAPreference;
+import mil.health.sdd.nearbyclient2.helper.CSRHelper;
+import mil.health.sdd.nearbyclient2.R;
 
 public class CSRSignActivity extends AppCompatActivity implements CAPreference.CaPreferenceLoadListener {
 
@@ -57,7 +61,9 @@ public class CSRSignActivity extends AppCompatActivity implements CAPreference.C
         try {
             PKCS10CertificationRequest csr = loadCSR(csrBase64);
             X509Certificate signedClientCert = signCSR(csr);
-            clientBundle.putString("cert",Base64.encodeToString(signedClientCert.getEncoded(),Base64.NO_WRAP));
+            String der64String = Base64.encodeToString(signedClientCert.getEncoded(),Base64.DEFAULT); // .getEncoded() returns ans1 der format
+            Log.v(TAG, "x509 der base64: " + der64String);
+            clientBundle.putString("cert",der64String);
             Intent responseIntent = new Intent();
             responseIntent.putExtra(EXTRA_MESSAGE,clientBundle);
             setResult(RESULT_OK,responseIntent);
@@ -72,7 +78,7 @@ public class CSRSignActivity extends AppCompatActivity implements CAPreference.C
 //        startActivity(mainIntent);
     }
 
-    private X509Certificate signCSR(PKCS10CertificationRequest csrReq) throws InvalidKeySpecException, CAPreferencePrivateKeyDecryptException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, OperatorCreationException, IOException {
+    private X509Certificate signCSR(PKCS10CertificationRequest csrReq) throws InvalidKeySpecException, CAPreference.CAPreferencePrivateKeyDecryptException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, OperatorCreationException, IOException {
 
         String issuerCNString = String.format(PKIActivity.CA_CN_PATTERN, PKIActivity.CA_CN);
         return CSRHelper.sign(csrReq,mCaPreferences.getKeyPair(),issuerCNString);

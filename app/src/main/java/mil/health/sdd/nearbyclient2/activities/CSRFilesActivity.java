@@ -1,4 +1,4 @@
-package mil.health.sdd.nearbyclient2;
+package mil.health.sdd.nearbyclient2.activities;
 
 import android.app.Activity;
 import android.content.Context;
@@ -32,6 +32,12 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
+
+import mil.health.sdd.nearbyclient2.CAPreference;
+import mil.health.sdd.nearbyclient2.helper.CSRHelper;
+import mil.health.sdd.nearbyclient2.adapters.CSRListAdapter;
+import mil.health.sdd.nearbyclient2.FileListItem;
+import mil.health.sdd.nearbyclient2.R;
 
 public class CSRFilesActivity extends Activity {
     public static final String TAG = "CSRFilesActivity";
@@ -204,7 +210,7 @@ public class CSRFilesActivity extends Activity {
             Log.e(TAG,"CSR Signing error 5",e);
         } catch (NoSuchProviderException e) {
             Log.e(TAG,"CSR Signing error 6",e);
-        } catch (CAPreferencePrivateKeyDecryptException e) {
+        } catch (CAPreference.CAPreferencePrivateKeyDecryptException e) {
             Log.e(TAG,"CSR Signing error 7",e);
         }
     }
