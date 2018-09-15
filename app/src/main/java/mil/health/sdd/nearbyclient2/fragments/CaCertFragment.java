@@ -34,7 +34,7 @@ public class CaCertFragment extends Fragment {
             mCallback = (CaCertificateListener) context;
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString()
-                    + " must implement OnHeadlineSelectedListener");
+                    + " must implement CaCertificateListener");
         }
     }
 

@@ -191,6 +191,10 @@ public class AdvertiseCAActivity extends Activity {
                                 Payload signedClientCertPayload = Payload.fromBytes(signedClientCert.getEncoded());
                                 Nearby.getConnectionsClient(mActivity).sendPayload(
                                     mEndPointId, signedClientCertPayload);
+                                //Send the CA cert so the client can add it as a trusted CA
+                                Payload caCertPayload = Payload.fromBytes(caPrefs.getCertificate().getEncoded());
+                                Nearby.getConnectionsClient(mActivity).sendPayload(
+                                        mEndPointId, caCertPayload);
                             }
                         } catch (IOException e) {
 
