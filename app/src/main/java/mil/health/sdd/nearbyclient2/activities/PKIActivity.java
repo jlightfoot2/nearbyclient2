@@ -142,6 +142,10 @@ public class PKIActivity extends AppCompatActivity implements CaCertFragment.CaC
         ft2.commit();
     }
 
+    /**
+     * Creates new keypair and self-signed certificate then stores them in CAPreference
+     * @param certInfo
+     */
     private void buildCaKeys(CertInfo certInfo){
         try {
 

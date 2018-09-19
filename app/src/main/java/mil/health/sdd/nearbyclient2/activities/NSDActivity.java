@@ -32,10 +32,12 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import mil.health.sdd.nearbyclient2.CAPreference;
 import mil.health.sdd.nearbyclient2.R;
 
 /**
@@ -122,7 +124,18 @@ public class NSDActivity extends AppCompatActivity {
                 remoteClientIp = clientBundle.getString("client_ip");
                 remoteClientPort = clientBundle.getInt("client_port");
                 mJWEEncryptHandler = new JWEEncryptHandler(this);
-                mTokenCreateThread = new Thread(new JWEEncryptThread(x509cert,mSharedKey));
+                String caCertB64 = "";
+                CAPreference cap = new CAPreference(this,getString(R.string.preference_pki_filename),getString(R.string.android_key_store_alias));
+                cap.init();
+                try {
+                    caCertB64 = Base64.encodeToString(cap.getCertificate().getEncoded(),Base64.DEFAULT);
+                } catch (CertificateException e) {
+                    e.printStackTrace();
+                    Log.v(TAG,"FAILURE: onActivityResult: CAPreferenc.getCertificate() failed");
+                    return;
+                }
+
+                mTokenCreateThread = new Thread(new JWEEncryptThread(x509cert + "," + caCertB64,mSharedKey));
                 mTokenCreateThread.start();
                 Log.v(TAG, "X509 cert: " + clientBundle.getString("cert"));
 
@@ -348,11 +361,9 @@ public class NSDActivity extends AppCompatActivity {
                 if(msg.what == JWE_X509_TOKEN_CREATED){
                     Log.v(TAG,"x509 token created and sent to handler");
                     JWE509TokenMessage message = (JWE509TokenMessage) msg.obj;
-                    try {
-                        activity.send509Token(message.getToken());
-                    } catch (IOException e) {
-                        Log.e(TAG,"send509Token failed",e);
-                    }
+
+                    activity.send509Token(message.getToken());
+
                 }
             }
         }
@@ -553,7 +564,7 @@ public class NSDActivity extends AppCompatActivity {
 
     }
 
-    public void send509Token(String token) throws IOException {
+    public void send509Token(String token){
         Log.v(TAG, "send509Token called");
         mSendCertThread = new Thread(new Socket509SendThread(token,remoteClientIp,remoteClientPort));
         mSendCertThread.start();

@@ -117,11 +117,6 @@ public class CAPreference {
         return !(caPrivateKeyPref.isEmpty() || caPublicKeyPref.isEmpty() || caCertificatePref.isEmpty());
     }
 
-    public void setTempSecret(byte[] secretKey){
-
-        sharedPreferences.edit().putString(context.getString(R.string.ca_secret_key_name), Base64.encodeToString(secretKey, BASE64_CONF));
-
-    }
 
     /**
      *
@@ -341,8 +336,7 @@ public class CAPreference {
     }
 
     public  X509Certificate getCertificate() throws CertificateException {
-//        KeyFactory kf = KeyFactory.getInstance("RSA",BouncyCastleProvider.PROVIDER_NAME);
-//        X509Certificate x509Cert = (X509Certificate) kf.generatePublic(new X509EncodedKeySpec(caCertificateBytes));
+
         CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
         InputStream in = new ByteArrayInputStream(caCertificateBytes);
         return (X509Certificate) certFactory.generateCertificate(in);
